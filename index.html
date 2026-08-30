@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14141c">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<title>לוח זמנים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#14141c; --surface:#1e1f2e; --surface-2:#262838; --text:#edeae3; --text-dim:#9b9aab;
+    --line:#33344a; --brand:#7c83fd; --calm:#6ec6a0; --mid:#e8b94b; --heavy:#e15554; --radius:18px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html{width:100%; min-height:100%; -webkit-text-size-adjust:100%; text-size-adjust:100%; touch-action:manipulation;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; overscroll-behavior-y:none; overflow-x:hidden; width:100%; max-width:100vw;}
+  *{max-width:100%;}
+  body{min-height:100vh; min-height:100dvh; padding-bottom:100px; touch-action:manipulation;}
+  h1,h2,h3{font-family:'Fraunces',serif; font-weight:600; margin:0;}
+  .wrap{max-width:520px; margin:0 auto; padding:20px 18px 0;}
+  .top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:18px;}
+  .top .date{color:var(--text-dim); font-size:13px;}
+  .top h1{font-size:22px;}
+
+  .hero{background:linear-gradient(155deg, var(--surface-2), var(--surface)); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px;}
+  .hero .eyebrow{font-size:11px; letter-spacing:.08em; color:var(--brand); text-transform:uppercase; font-weight:600;}
+  .hero .main-line{font-size:20px; font-family:'Fraunces',serif; font-weight:600; margin:6px 0 2px;}
+  .hero .sub-line{color:var(--text-dim); font-size:13.5px;}
+  .hero .countdown{margin-top:14px; padding-top:14px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;}
+  .hero .countdown .label{font-size:12.5px; color:var(--text-dim);}
+  .hero .countdown .num{font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:600;}
+
+  .week-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .week-nav .wk-label{font-size:12.5px; color:var(--text-dim);}
+  .week-nav .wk-arrow{color:var(--text-dim); font-size:16px; padding:4px 10px; cursor:pointer;}
+  .week{display:flex; gap:7px; margin-bottom:18px;}
+  .day-chip{flex:1; border-radius:14px; padding:10px 4px 8px; text-align:center; background:var(--surface); border:1px solid var(--line); cursor:pointer; transition:transform .15s;}
+  .day-chip:active{transform:scale(.94);}
+  .day-chip.today{border-color:var(--brand);}
+  .day-chip.sel{outline:2px solid var(--brand);}
+  .day-chip .dname{font-size:11px; color:var(--text-dim); margin-bottom:2px;}
+  .day-chip .dnum-top{font-size:12px; font-weight:600; margin-bottom:6px;}
+  .day-chip .meter{height:34px; width:8px; margin:0 auto; border-radius:5px; background:var(--line); position:relative; overflow:hidden;}
+  .day-chip .meter-fill{position:absolute; bottom:0; right:0; left:0; border-radius:5px; transition:height .3s;}
+
+  section{margin-bottom:22px;}
+  .sec-title{font-size:14px; color:var(--text-dim); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;}
+  .sec-title .add{color:var(--brand); font-size:13px; cursor:pointer; font-weight:600;}
+
+  .lesson-row, .event-row{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px; display:flex; align-items:center; gap:12px;}
+  .swatch{width:6px; align-self:stretch; border-radius:4px; flex-shrink:0;}
+  .lr-body{flex:1; min-width:0;}
+  .lr-title{font-size:14.5px; font-weight:600;}
+  .lr-sub{font-size:12.5px; color:var(--text-dim); margin-top:2px;}
+  .lr-time{font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text-dim); text-align:left; white-space:nowrap; display:flex; align-items:center; gap:6px; direction:ltr;}
+  .lr-time .arrow{color:var(--brand); font-size:12px;}
+  .pill{font-size:10.5px; padding:2px 8px; border-radius:20px; font-weight:600; white-space:nowrap;}
+  .empty{color:var(--text-dim); font-size:13px; text-align:center; padding:22px 10px; border:1px dashed var(--line); border-radius:14px;}
+
+  .fab{position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--brand); color:#14141c; border:none; border-radius:30px; padding:14px 26px; font-size:15px; font-weight:700; font-family:'Inter',sans-serif; box-shadow:0 8px 24px rgba(124,131,253,.4); cursor:pointer; z-index:20;}
+
+  .overlay{position:fixed; inset:0; background:rgba(10,10,15,.6); backdrop-filter:blur(2px); z-index:30; display:none;}
+  .overlay.open{display:block;}
+  .sheet{position:fixed; right:0; left:0; bottom:0; width:100%; max-width:520px; margin:0 auto; background:var(--surface); border-radius:22px 22px 0 0; padding:20px 18px calc(30px + env(safe-area-inset-bottom)); z-index:31; transform:translateY(100%); transition:transform .28s ease; max-height:85vh; max-height:85dvh; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;}
+  .sheet.open{transform:translateY(0);}
+  .sheet h3{font-size:17px; margin-bottom:14px;}
+  .tabs{display:flex; gap:6px; margin-bottom:16px; background:var(--surface-2); padding:4px; border-radius:12px;}
+  .tab{flex:1; text-align:center; padding:8px; font-size:13px; border-radius:9px; cursor:pointer; color:var(--text-dim); font-weight:600;}
+  .tab.active{background:var(--brand); color:#14141c;}
+  label{display:block; font-size:12.5px; color:var(--text-dim); margin:12px 0 5px;}
+  input[type=text], input[type=password], input[type=date], input[type=time], select{width:100%; background:var(--surface-2); border:1px solid var(--line); color:var(--text); padding:11px 12px; border-radius:10px; font-size:16px; font-family:'Inter',sans-serif; box-sizing:border-box;}
+  /* Keep iPhone from zooming on focus without changing the original field design */
+  input, select, textarea{font-size:16px;}
+  /* Two compact time fields on one row: start on the right, end on the left */
+  .row2{display:flex; flex-direction:row; gap:10px; width:100%; max-width:100%; direction:rtl;}
+  .row2 > div{flex:1 1 0; min-width:0; max-width:calc(50% - 5px);}
+  .row2 input{width:100%; min-width:0; max-width:100%; box-sizing:border-box;}
+  /* Safari/iOS can give date/time controls an intrinsic minimum width; neutralize only that */
+  input[type=date], input[type=time]{min-width:0; max-width:100%;}
+  .swatches{display:flex; gap:8px; margin-top:6px;}
+  .sw-opt{width:26px; height:26px; border-radius:50%; cursor:pointer; border:2px solid transparent;}
+  .sw-opt.sel{border-color:var(--text);}
+  .days-picker{display:flex; gap:6px; margin-top:6px;}
+  .dp{flex:1; text-align:center; padding:8px 0; border-radius:9px; background:var(--surface-2); font-size:12px; cursor:pointer; color:var(--text-dim);}
+  .dp.sel{background:var(--brand); color:#14141c; font-weight:700;}
+  .save-btn{width:100%; margin-top:18px; background:var(--brand); color:#14141c; border:none; padding:13px; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer;}
+  .del-btn{width:100%; margin-top:10px; background:transparent; color:var(--heavy); border:1px solid var(--heavy); padding:11px; border-radius:12px; font-size:13.5px; font-weight:600; cursor:pointer;}
+  .close-x{position:absolute; top:16px; left:16px; color:var(--text-dim); font-size:20px; cursor:pointer;}
+  .kind-grid{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
+  .kind-opt{padding:8px 12px; border-radius:9px; background:var(--surface-2); font-size:12.5px; cursor:pointer; color:var(--text-dim);}
+  .kind-opt.sel{background:var(--brand); color:#14141c; font-weight:700;}
+  .reminder-row{display:flex; gap:6px; align-items:center; margin-bottom:8px;}
+  .reminder-row select{flex:1; min-width:0;}
+  .reminder-row input[type=number]{width:64px; flex-shrink:0; padding:11px 6px; text-align:center;}
+  .reminder-row .rm-x{color:var(--heavy); cursor:pointer; font-size:15px; padding:4px 6px; flex-shrink:0;}
+  .auth-screen{position:fixed; inset:0; background:var(--bg); z-index:50; display:flex; align-items:center; justify-content:center; padding:24px;}
+  .auth-card{width:100%; max-width:340px;}
+  .auth-card h2{font-size:22px; margin-bottom:6px;}
+  .auth-card p{color:var(--text-dim); font-size:13.5px; margin-bottom:20px;}
+  .auth-toggle{text-align:center; margin-top:14px; font-size:13px; color:var(--text-dim);}
+  .auth-toggle span{color:var(--brand); font-weight:600; cursor:pointer;}
+  .auth-err{color:var(--heavy); font-size:12.5px; margin-top:10px; text-align:center;}
+  .signout{position:fixed; top:18px; left:18px; color:var(--text-dim); font-size:12px; cursor:pointer; z-index:15;}
+  .settings-fab{position:fixed; top:18px; left:18px; z-index:15; width:38px; height:38px; border-radius:50%; background:var(--surface); border:1px solid var(--line); color:var(--text-dim); font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform 0.15s ease, background 0.15s ease;}
+  .settings-fab:active{transform:scale(0.9) rotate(20deg);}
+  .settings-row{display:flex; justify-content:space-between; align-items:center; padding:14px 4px; border-bottom:1px solid var(--line); cursor:pointer; font-size:14.5px;}
+  .settings-row:last-child{border-bottom:none;}
+  .settings-row:active{background:var(--surface-2);}
+  .settings-status{color:var(--text-dim); font-size:12.5px;}
+
+  /* loading overlay */
+  .loading-overlay{position:fixed; inset:0; background:rgba(20,20,28,0.55); backdrop-filter:blur(3px); z-index:60; display:none; align-items:center; justify-content:center;}
+  .loading-overlay.show{display:flex;}
+  .loading-mark{width:78px; height:78px; position:relative; display:flex; align-items:center; justify-content:center;}
+  .loading-ring{position:absolute; inset:0; border-radius:50%; border:4px solid rgba(124,131,253,0.18); border-top-color:var(--brand); border-right-color:#9aa0ff; animation:ringSpin 0.85s linear infinite; box-shadow:0 0 0 1px rgba(124,131,253,0.06) inset;}
+  .loading-icon{position:relative; z-index:2; width:44px; height:44px; border-radius:11px; object-fit:cover; display:block; box-shadow:0 3px 12px rgba(0,0,0,.22);}
+  @keyframes ringSpin{to{transform:rotate(360deg);}}
+
+  .holiday-row{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px; display:flex; align-items:center; gap:12px;}
+  .holiday-icon{width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:rgba(124,131,253,.14); font-size:16px;}
+  .holiday-row .lr-sub{color:var(--brand);}
+
+  /* general motion */
+  .fade-in-up{animation:fadeInUp 0.35s ease both;}
+  @keyframes fadeInUp{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+  .hero{transition:opacity 0.25s ease;}
+  .day-chip{transition:transform 0.15s ease, outline-color 0.2s ease;}
+  .save-btn, .del-btn, .fab{transition:transform 0.12s ease, filter 0.12s ease, box-shadow 0.2s ease;}
+  .save-btn:active, .del-btn:active, .fab:active{transform:scale(0.96); filter:brightness(0.95);}
+  .tab, .dp, .kind-opt, .sw-opt{transition:transform 0.12s ease, background 0.15s ease, color 0.15s ease;}
+  .tab:active, .dp:active, .kind-opt:active{transform:scale(0.94);}
+  .sw-opt:active{transform:scale(0.88);}
+  .lesson-row, .event-row{transition:transform 0.12s ease, background 0.15s ease;}
+  .lesson-row:active, .event-row:active{transform:scale(0.98); background:var(--surface-2);}
+  body{animation:bodyFadeIn 0.4s ease both;}
+  @keyframes bodyFadeIn{from{opacity:0;} to{opacity:1;}}
+</style>
+</head>
+<body>
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <h2 id="authTitle">התחברות</h2>
+    <p id="authSub">כדי שרק אתה תראה את הלו״ז שלך</p>
+    <label>אימייל</label>
+    <input type="text" id="auth-email" placeholder="you@example.com">
+    <label>סיסמה</label>
+    <input type="password" id="auth-pass" placeholder="לפחות 6 תווים">
+    <button class="save-btn" id="authBtn" onclick="doSignIn()">התחברות</button>
+    <div class="auth-err" id="authErr"></div>
+    <div class="auth-toggle" id="authToggle">אין לך חשבון? <span onclick="switchAuthMode('signup')">הרשמה</span></div>
+  </div>
+</div>
+<button class="settings-fab" id="settingsFab" style="display:none;" onclick="openSettings()">⚙</button>
+<div class="overlay" id="settingsOverlay" onclick="closeSettings()"></div>
+<div class="sheet" id="settingsSheet">
+  <span class="close-x" onclick="closeSettings()">✕</span>
+  <h3>הגדרות</h3>
+  <div class="settings-row" id="settingsNotifRow" onclick="requestNotifPermission()">
+    <span>🔔 התראות בדפדפן</span><span class="settings-status" id="settingsNotifStatus"></span>
+  </div>
+  <div class="settings-row" onclick="handleTelegramClick()">
+    <span>✈️ טלגרם</span><span class="settings-status" id="settingsTelegramStatus"></span>
+  </div>
+  <div class="settings-row" onclick="doSignOut()">
+    <span>🚪 התנתקות</span>
+  </div>
+</div>
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-mark" aria-hidden="true">
+    <div class="loading-ring"></div>
+    <img class="loading-icon" src="icon-180.png" alt="">
+  </div>
+</div>
+<div class="wrap">
+  <div class="top">
+    <div><h1>שלום</h1><div class="date" id="todayDate"></div></div>
+  </div>
+
+  <div class="hero" id="heroCard"></div>
+
+  <div class="week-nav">
+    <span class="wk-arrow" onclick="changeWeek(1)">›</span>
+    <span class="wk-label" id="weekLabel"></span>
+    <span class="wk-arrow" onclick="changeWeek(-1)">‹</span>
+  </div>
+  <div class="week" id="weekStrip"></div>
+
+  <section>
+    <div class="sec-title"><span id="dayListTitle">היום</span><span class="add" onclick="openSheet('recurring')">+ אירוע קבוע</span></div>
+    <div id="dayList"></div>
+  </section>
+
+  <section>
+    <div class="sec-title"><span>קרוב אליי (מבחנים, הגשות, פגישות...)</span><span class="add" onclick="openSheet('oneoff')">+ אירוע חד־פעמי</span></div>
+    <div id="eventList"></div>
+  </section>
+</div>
+
+<button class="fab" onclick="openSheet('category')">+ הוספה מהירה</button>
+
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <span class="close-x" onclick="closeSheet()">✕</span>
+  <div class="tabs">
+    <div class="tab" data-tab="category" onclick="switchTab('category')">קטגוריה</div>
+    <div class="tab" data-tab="recurring" onclick="switchTab('recurring')">קבוע שבועי</div>
+    <div class="tab" data-tab="oneoff" onclick="switchTab('oneoff')">חד־פעמי</div>
+  </div>
+
+  <div id="tab-category">
+    <div id="cat-list"></div>
+    <label>שם הקטגוריה</label>
+    <input type="text" id="cat-name" placeholder="למשל: עבודה, לימודים, פגישות">
+    <label>צבע</label>
+    <div class="swatches" id="cat-swatches"></div>
+    <button class="save-btn" id="cat-save-btn" onclick="saveCategory()">שמירה</button>
+    <button class="del-btn" id="cat-del-btn" style="display:none;" onclick="deleteCategory()">מחיקת קטגוריה</button>
+  </div>
+
+  <div id="tab-recurring" style="display:none;">
+    <div class="empty" id="rec-no-cat" style="display:none; margin-bottom:14px;">קודם צריך להוסיף קטגוריה אחת לפחות. <span style="color:var(--brand); font-weight:600; cursor:pointer;" onclick="switchTab('category')">להוספת קטגוריה ←</span></div>
+    <div id="rec-fields">
+      <label>שם האירוע</label>
+      <input type="text" id="rec-title" placeholder="למשל: אקונומטריקה א / משמרת קבועה">
+      <label>קטגוריה</label>
+      <select id="rec-cat"></select>
+      <label>ימים</label>
+      <div class="days-picker" id="rec-days"></div>
+      <div class="row2">
+        <div><label>שעת התחלה</label><input type="time" id="rec-start" value="10:00"></div>
+        <div><label>שעת סיום</label><input type="time" id="rec-end" value="12:00"></div>
+      </div>
+      <label>מיקום (אופציונלי)</label>
+      <input type="text" id="rec-loc" placeholder="בניין / אולם / מקום עבודה">
+      <label>תזכורות</label>
+      <div id="rec-reminders-list"></div>
+      <div class="add" style="margin-top:6px; cursor:pointer;" onclick="addReminderRow('rec')">+ הוספת תזכורת</div>
+      <button class="save-btn" id="rec-save-btn" onclick="saveRecurring()">שמירה</button>
+      <button class="del-btn" id="rec-del-btn" style="display:none;" onclick="deleteRecurring()">מחיקה</button>
+    </div>
+  </div>
+
+  <div id="tab-oneoff" style="display:none;">
+    <div class="empty" id="oo-no-cat" style="display:none; margin-bottom:14px;">אפשר גם בלי קטגוריה, או <span style="color:var(--brand); font-weight:600; cursor:pointer;" onclick="switchTab('category')">להוסיף קטגוריה קודם ←</span></div>
+    <label>סוג</label>
+    <div class="kind-grid" id="oo-kinds"></div>
+    <label>כותרת</label>
+    <input type="text" id="oo-title" placeholder="למשל: משמרת ערב / פגישת צוות / מבחן">
+    <label>קטגוריה (אופציונלי)</label>
+    <select id="oo-cat"><option value="">— ללא —</option></select>
+    <label>תאריך</label>
+    <input type="date" id="oo-date">
+    <label>שעות (השאר ריק אם זה רק תזכורת/דדליין בלי שעה קבועה)</label>
+    <div class="row2">
+      <div><label>משעה</label><input type="time" id="oo-start"></div>
+      <div><label>עד שעה</label><input type="time" id="oo-end"></div>
+    </div>
+    <label>תזכורות</label>
+    <div id="oo-reminders-list"></div>
+    <div class="add" style="margin-top:6px; cursor:pointer;" onclick="addReminderRow('oo')">+ הוספת תזכורת</div>
+    <button class="save-btn" id="oo-save-btn" onclick="saveOneoff()">שמירה</button>
+    <button class="del-btn" id="oo-del-btn" style="display:none;" onclick="deleteOneoff()">מחיקה</button>
+  </div>
+</div>
+
+<script>
+// Keep the installed iPhone/PWA view at a stable scale.
+document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
+document.addEventListener('gesturechange', function(e){ e.preventDefault(); }, {passive:false});
+document.addEventListener('gestureend', function(e){ e.preventDefault(); }, {passive:false});
+
+const COLORS = ['#7c83fd','#6ec6a0','#e8b94b','#e15554','#5aa9e6','#c77dff','#ff9f6b'];
+const DAY_NAMES = ['א','ב','ג','ד','ה','ו','ש'];
+const DAY_NAMES_FULL = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const KINDS = [
+  {id:'meeting', label:'פגישה'}, {id:'shift', label:'משמרת'},
+  {id:'exam', label:'מבחן'}, {id:'deadline', label:'הגשה'}, {id:'other', label:'אחר'}
+];
+const REMINDER_PRESETS = [
+  {val:'', label:'ללא'},
+  {val:'10', label:'10 דק׳ לפני'},
+  {val:'30', label:'חצי שעה לפני'},
+  {val:'60', label:'שעה לפני'},
+  {val:'120', label:'שעתיים לפני'},
+  {val:'1440', label:'יום לפני'},
+  {val:'custom', label:'מותאם אישית'}
+];
+
+const SUPABASE_URL = 'https://uyqerqfcxgfixylimjcd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Drkhg6nvvQdRfrewrAJMiw_QhN43qr3';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const VAPID_PUBLIC_KEY = 'BFwAzIJT-euM5tAZhpUBmhnav0r5RlF2K2lgAHBCLHd5xehlMe6NcPjHpAj3arxcyzYT-LG0mU-_ZWWwRp9M0NU';
+const TELEGRAM_BOT_USERNAME = 'es_419bot'; // replace with your bot's @username (without the @) from BotFather
+
+let telegramLinked = false;
+let telegramCode = null;
+function genCode(){ return Math.random().toString(36).slice(2,8).toUpperCase(); }
+async function refreshTelegramStatus(){
+  const {data:{user}} = await sb.auth.getUser();
+  if(!user) return;
+  const {data} = await sb.from('telegram_links').select('*').eq('user_id', user.id).maybeSingle();
+  telegramLinked = !!(data && data.chat_id);
+  telegramCode = data ? data.link_code : null;
+  updateTelegramBanner();
+}
+function updateTelegramBanner(){
+  const el = document.getElementById('settingsTelegramStatus');
+  if(!el) return;
+  el.textContent = telegramLinked ? 'מחובר ✅' : 'לא מחובר - לחץ לחיבור';
+}
+async function handleTelegramClick(){
+  const {data:{user}} = await sb.auth.getUser();
+  if(!user) return;
+  await refreshTelegramStatus();
+  if(telegramLinked){
+    if(confirm('טלגרם מחובר ✅ לנתק את החשבון?')){
+      await sb.from('telegram_links').update({chat_id:null, link_code:null, linked_at:null}).eq('user_id', user.id);
+      telegramLinked = false; telegramCode = null; updateTelegramBanner();
+    }
+    return;
+  }
+  if(!telegramCode){
+    telegramCode = genCode();
+    await sb.from('telegram_links').upsert({user_id:user.id, link_code:telegramCode}, {onConflict:'user_id'});
+  }
+  alert(`כדי לחבר טלגרם:\n\n1. פתח את הבוט @${TELEGRAM_BOT_USERNAME} בטלגרם\n2. שלח לו: /start ${telegramCode}\n3. תחזור לכאן ותלחץ שוב על הבאנר כדי לבדוק שהחיבור הצליח`);
+}
+
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+
+let swRegistration = null;
+async function registerSW(){
+  if(!('serviceWorker' in navigator)) return;
+  try{ swRegistration = await navigator.serviceWorker.register('sw.js'); }
+  catch(e){ console.error('SW registration failed', e); }
+}
+async function subscribeToPush(){
+  if(!swRegistration || !('PushManager' in window)) return false;
+  try{
+    let sub = await swRegistration.pushManager.getSubscription();
+    if(!sub){
+      sub = await swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const json = sub.toJSON();
+    const {data:{user}} = await sb.auth.getUser();
+    if(!user) return false;
+    await sb.from('push_subscriptions').upsert({
+      user_id: user.id, endpoint: json.endpoint, p256dh: json.keys.p256dh, auth_key: json.keys.auth
+    }, {onConflict:'user_id,endpoint'});
+    return true;
+  } catch(e){ console.error('push subscribe failed', e); return false; }
+}
+function onChannelChange(val){
+  if(val==='push'){
+    Notification.requestPermission().then(perm=>{
+      if(perm==='granted') subscribeToPush();
+      else alert('צריך לאשר התראות כדי להשתמש ב-Push');
+    });
+  }
+  if(val==='telegram' && !telegramLinked){
+    handleTelegramClick();
+  }
+}
+
+let authMode = 'signin';
+function switchAuthMode(mode){
+  authMode = mode;
+  document.getElementById('authErr').textContent = '';
+  if(mode==='signup'){
+    document.getElementById('authTitle').textContent = 'יצירת חשבון';
+    document.getElementById('authSub').textContent = 'משתמש חדש - נעילת הלו״ז לך בלבד';
+    document.getElementById('authBtn').textContent = 'הרשמה';
+    document.getElementById('authBtn').setAttribute('onclick','doSignUp()');
+    document.getElementById('authToggle').innerHTML = 'כבר יש לך חשבון? <span onclick="switchAuthMode(\'signin\')">התחברות</span>';
+  } else {
+    document.getElementById('authTitle').textContent = 'התחברות';
+    document.getElementById('authSub').textContent = 'כדי שרק אתה תראה את הלו״ז שלך';
+    document.getElementById('authBtn').textContent = 'התחברות';
+    document.getElementById('authBtn').setAttribute('onclick','doSignIn()');
+    document.getElementById('authToggle').innerHTML = 'אין לך חשבון? <span onclick="switchAuthMode(\'signup\')">הרשמה</span>';
+  }
+}
+async function doSignIn(){
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-pass').value;
+  const {error} = await sb.auth.signInWithPassword({email, password});
+  document.getElementById('authErr').textContent = error ? 'אימייל או סיסמה שגויים' : '';
+}
+async function doSignUp(){
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-pass').value;
+  if(password.length<6){ document.getElementById('authErr').textContent='הסיסמה חייבת להכיל לפחות 6 תווים'; return; }
+  const {data, error} = await sb.auth.signUp({email, password});
+  if(error){ document.getElementById('authErr').textContent = error.message; return; }
+  if(!data.session){ document.getElementById('authErr').textContent = 'נשלח מייל אימות - תאשר ואז תתחבר'; document.getElementById('authErr').style.color='var(--calm)'; }
+}
+function doSignOut(){ sb.auth.signOut(); }
+
+sb.auth.onAuthStateChange((event, session)=>{
+  if(session){
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('settingsFab').style.display = 'flex';
+    loadAll();
+    refreshTelegramStatus();
+    updateNotifSettingsRow();
+    if('Notification' in window && Notification.permission==='granted') subscribeToPush();
+  } else {
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('settingsFab').style.display = 'none';
+  }
+});
+
+function openSettings(){
+  document.getElementById('settingsOverlay').classList.add('open');
+  document.getElementById('settingsSheet').classList.add('open');
+  updateNotifSettingsRow();
+  updateTelegramBanner();
+}
+function closeSettings(){
+  document.getElementById('settingsOverlay').classList.remove('open');
+  document.getElementById('settingsSheet').classList.remove('open');
+}
+function updateNotifSettingsRow(){
+  const el = document.getElementById('settingsNotifStatus');
+  if(!('Notification' in window)){ el.textContent = 'לא נתמך'; return; }
+  el.textContent = Notification.permission==='granted' ? 'מאושר ✅' : 'לא מאושר - לחץ לאישור';
+}
+
+let store = { categories: [], recurring: [], oneoff: [], reminders: [] };
+let holidayStore = {};
+const holidayYearsLoaded = new Set();
+const holidayYearsLoading = new Set();
+
+function holidayIcon(title=''){
+  if(/חנוכה/.test(title)) return '🕎';
+  if(/פורים/.test(title)) return '🎭';
+  if(/פסח/.test(title)) return '🍷';
+  if(/שבועות/.test(title)) return '🌾';
+  if(/סוכות|שמחת תורה|שמיני עצרת/.test(title)) return '🌿';
+  if(/ראש השנה/.test(title)) return '🍎';
+  if(/כיפור/.test(title)) return '✡️';
+  if(/עצמאות/.test(title)) return '🇮🇱';
+  if(/זיכרון|שואה/.test(title)) return '🕯️';
+  if(/ירושלים/.test(title)) return '🇮🇱';
+  return '✡️';
+}
+
+async function ensureHolidayYear(year){
+  if(holidayYearsLoaded.has(year) || holidayYearsLoading.has(year)) return;
+  holidayYearsLoading.add(year);
+  try{
+    const url = `https://www.hebcal.com/hebcal?v=1&cfg=json&year=${year}&maj=on&min=on&mod=on&i=on&lg=he`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('Hebcal '+res.status);
+    const data = await res.json();
+    (data.items||[]).forEach(item=>{
+      if(!item.date || !item.title) return;
+      const ds = item.date.slice(0,10);
+      if(!holidayStore[ds]) holidayStore[ds]=[];
+      if(!holidayStore[ds].some(x=>x.title===item.title)){
+        holidayStore[ds].push({title:item.title, category:item.category||'holiday'});
+      }
+    });
+    holidayYearsLoaded.add(year);
+    renderAll();
+  }catch(e){
+    console.warn('Holiday load failed', e);
+  }finally{
+    holidayYearsLoading.delete(year);
+  }
+}
+
+function holidaysForDate(dateObj){
+  const ds = isoDate(dateObj);
+  return holidayStore[ds] || [];
+}
+
+function preloadVisibleHolidayYears(){
+  const years = new Set(weekDates().map(d=>d.getFullYear()));
+  years.add(new Date(selectedDate+'T12:00:00').getFullYear());
+  years.forEach(ensureHolidayYear);
+}
+
+
+// -- mapping helpers: DB uses snake_case, app logic uses the shorter names below --
+function mapCatFromDb(r){ return {id:r.id, name:r.name, color:r.color}; }
+function mapRecFromDb(r){ return {id:r.id, categoryId:r.category_id, title:r.title, days:r.days, start:r.start_time, end:r.end_time, loc:r.location}; }
+function mapOoFromDb(r){ return {id:r.id, categoryId:r.category_id, title:r.title, date:r.date, start:r.start_time||'', end:r.end_time||'', kind:r.kind}; }
+
+function showLoading(){ document.getElementById('loadingOverlay').classList.add('show'); }
+function hideLoading(){ document.getElementById('loadingOverlay').classList.remove('show'); }
+
+async function loadAll(){
+  showLoading();
+  const [{data:cats, error:e1}, {data:recs, error:e2}, {data:oos, error:e3}, {data:rems, error:e4}] = await Promise.all([
+    sb.from('categories').select('*').order('created_at'),
+    sb.from('recurring').select('*').order('created_at'),
+    sb.from('oneoff').select('*').order('date'),
+    sb.from('reminders').select('*')
+  ]);
+  if(e1||e2||e3||e4){ console.error(e1,e2,e3,e4); alert('שגיאה בטעינת הנתונים מהשרת - בדוק חיבור לאינטרנט'); hideLoading(); return; }
+  store.categories = (cats||[]).map(mapCatFromDb);
+  store.recurring = (recs||[]).map(mapRecFromDb);
+  store.oneoff = (oos||[]).map(mapOoFromDb);
+  store.reminders = rems||[];
+  renderAll();
+  hideLoading();
+}
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function catById(id){ return store.categories.find(c=>c.id===id); }
+function kindLabel(k){ return (KINDS.find(x=>x.id===k)||{}).label || 'אחר'; }
+function isoDate(d){ const off=d.getTimezoneOffset(); const local=new Date(d.getTime()-off*60000); return local.toISOString().slice(0,10); }
+
+let weekOffset = 0;
+let selectedDate = isoDate(new Date());
+let selectedColor = COLORS[0];
+let selectedRecDays = new Set();
+let selectedKind = 'meeting';
+let editingCatId = null, editingRecId = null, editingOneoffId = null;
+
+function fmtDate(d){ return d.toLocaleDateString('he-IL', {weekday:'long', day:'numeric', month:'long'}); }
+
+function weekDates(){
+  const now = new Date();
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + weekOffset*7);
+  return [0,1,2,3,4,5,6].map(i=>{ const d=new Date(base); d.setDate(base.getDate()+i); return d; });
+}
+
+function itemsForDate(dateObj){
+  const wd = dateObj.getDay();
+  const ds = isoDate(dateObj);
+  const holidayItems = holidaysForDate(dateObj).map((h,idx)=>({
+    id:`holiday-${ds}-${idx}`, type:'holiday', start:'', end:'', title:h.title, loc:'חג / מועד בישראל', color:'var(--brand)', holidayCategory:h.category
+  }));
+  const recItems = store.recurring.filter(r=>r.days.includes(wd)).map(r=>({
+    id:r.id, type:'recurring', start:r.start, end:r.end, title:r.title||(catById(r.categoryId)?.name)||'אירוע קבוע', loc:r.loc, color:(catById(r.categoryId)?.color)||'#888'
+  }));
+  const ooItems = store.oneoff.filter(o=>o.date===ds && o.start).map(o=>({
+    id:o.id, type:'oneoff', start:o.start, end:o.end, title:o.title, loc:kindLabel(o.kind), color:(catById(o.categoryId)?.color)||'#888'
+  }));
+  // deadlines with no fixed time: show as a running reminder on every day up to (and including) the due date
+  const todayStr = isoDate(new Date());
+  const deadlineItems = store.oneoff.filter(o=>o.kind==='deadline' && !o.start && o.date>=ds && ds>=todayStr).map(o=>{
+    const daysLeft = Math.round((new Date(o.date)-new Date(ds))/86400000);
+    const label = daysLeft===0 ? 'להגיש היום!' : daysLeft===1 ? 'להגיש מחר' : `להגיש בעוד ${daysLeft} ימים`;
+    return {id:o.id, type:'deadline', start:'', end:'', title:o.title, loc:label, dueSoon:daysLeft<=1, color:(catById(o.categoryId)?.color)||'var(--heavy)'};
+  });
+  return [...holidayItems, ...deadlineItems, ...recItems, ...ooItems].sort((a,b)=>a.start.localeCompare(b.start));
+}
+
+function loadDifficulty(dateObj){
+  const items = itemsForDate(dateObj).filter(it=>it.start);
+  let hours = 0;
+  items.forEach(it=>{
+    const [sh,sm]=it.start.split(':').map(Number), [eh,em]=it.end.split(':').map(Number);
+    hours += (eh+em/60)-(sh+sm/60);
+  });
+  const ds = isoDate(dateObj);
+  let weight = 0;
+  store.oneoff.forEach(o=>{
+    if(!o.date) return;
+    const diff = Math.round((new Date(o.date)-new Date(ds))/86400000);
+    if(diff>=0 && diff<=3){
+      const w = o.kind==='exam'?3 : o.kind==='deadline'?1.5 : o.kind==='meeting'?1:0.8;
+      if(diff===0) weight += w; else weight += w*0.3;
+    }
+  });
+  return hours + weight;
+}
+function loadColor(score){ if(score<=2) return 'var(--calm)'; if(score<=5) return 'var(--mid)'; return 'var(--heavy)'; }
+
+function changeWeek(delta){ weekOffset -= delta; renderAll(); }
+
+function renderWeek(){
+  const dates = weekDates();
+  const el = document.getElementById('weekStrip');
+  el.innerHTML='';
+  const todayStr = isoDate(new Date());
+  const scores = dates.map(loadDifficulty);
+  const maxScore = Math.max(...scores, 4);
+  document.getElementById('weekLabel').textContent = weekOffset===0 ? 'השבוע' : (dates[0].toLocaleDateString('he-IL',{day:'numeric',month:'short'})+' – '+dates[6].toLocaleDateString('he-IL',{day:'numeric',month:'short'}));
+  dates.forEach((d,i)=>{
+    const ds = isoDate(d);
+    const score = scores[i];
+    const pct = Math.min(100, Math.round((score/maxScore)*100));
+    const chip = document.createElement('div');
+    chip.className = 'day-chip fade-in-up' + (ds===todayStr?' today':'') + (ds===selectedDate?' sel':'');
+    chip.style.animationDelay = (i*0.04)+'s';
+    chip.onclick = ()=>{ selectedDate=ds; renderAll(); };
+    chip.innerHTML = `
+      <div class="dname">${DAY_NAMES[d.getDay()]}</div>
+      <div class="dnum-top">${d.getDate()}</div>
+      <div class="meter"><div class="meter-fill" style="height:${pct}%; background:${loadColor(score)}"></div></div>
+    `;
+    el.appendChild(chip);
+  });
+}
+
+function renderHero(){
+  const now = new Date();
+  const nowMin = now.getHours()*60+now.getMinutes();
+  const todayItems = itemsForDate(now).filter(it=>it.start).map(it=>{
+    const [sh,sm]=it.start.split(':').map(Number), [eh,em]=it.end.split(':').map(Number);
+    return {...it, startMin:sh*60+sm, endMin:eh*60+em};
+  });
+  const current = todayItems.find(it=>nowMin>=it.startMin && nowMin<it.endMin);
+  const next = todayItems.find(it=>it.startMin>nowMin);
+  const hero = document.getElementById('heroCard');
+  let html;
+  if(current){
+    html = `<div class="eyebrow">עכשיו</div><div class="main-line">${current.title}</div><div class="sub-line">${current.start}–${current.end}${current.loc?' · '+current.loc:''}</div>${nextCountdownHtml()}`;
+  } else if(next){
+    html = `<div class="eyebrow">הבא בתור</div><div class="main-line">${next.title}</div><div class="sub-line">${next.start}–${next.end}${next.loc?' · '+next.loc:''}</div>${nextCountdownHtml()}`;
+  } else {
+    html = `<div class="eyebrow">היום</div><div class="main-line">אין עוד דברים קבועים היום</div><div class="sub-line">זמן פנוי</div>${nextCountdownHtml()}`;
+  }
+  if(hero.innerHTML !== html){
+    hero.style.opacity = '0';
+    setTimeout(()=>{ hero.innerHTML = html; hero.style.opacity = '1'; }, 150);
+  }
+}
+function nextCountdownHtml(){
+  const todayStr = isoDate(new Date());
+  const upcoming = store.oneoff.filter(o=>o.date && o.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date)||(a.start||'').localeCompare(b.start||''))[0];
+  if(!upcoming) return '';
+  const diff = Math.round((new Date(upcoming.date)-new Date(todayStr))/86400000);
+  const label = diff===0?'היום':diff===1?'מחר':`בעוד ${diff} ימים`;
+  return `<div class="countdown"><div><div class="label">${kindLabel(upcoming.kind)} הכי קרוב: ${upcoming.title}</div></div><div class="num">${label}</div></div>`;
+}
+
+function renderDayList(){
+  const d = new Date(selectedDate);
+  const todayStr = isoDate(new Date());
+  document.getElementById('dayListTitle').textContent = selectedDate===todayStr ? 'היום' : DAY_NAMES_FULL[d.getDay()]+' · '+d.toLocaleDateString('he-IL',{day:'numeric',month:'short'});
+  const items = itemsForDate(d);
+  const el = document.getElementById('dayList');
+  if(items.length===0){ el.innerHTML = '<div class="empty">אין כלום מתוזמן ביום הזה</div>'; return; }
+  el.innerHTML = items.map((it,i)=>{
+    const typeLabel = it.type==='recurring' ? 'קבוע' : it.type==='deadline' ? it.loc : it.type==='holiday' ? 'חג / מועד בישראל' : 'חד־פעמי';
+    if(it.type==='holiday'){
+      return `
+      <div class="holiday-row fade-in-up" style="animation-delay:${i*0.04}s">
+        <div class="holiday-icon">${holidayIcon(it.title)}</div>
+        <div class="lr-body"><div class="lr-title">${it.title}</div><div class="lr-sub">${typeLabel}</div></div>
+      </div>`;
+    }
+    const timeHtml = it.type==='deadline'
+      ? `<div class="lr-time" style="color:${it.dueSoon?'var(--heavy)':'var(--text-dim)'}">⏳</div>`
+      : `<div class="lr-time">${it.start}<span class="arrow">→</span>${it.end}</div>`;
+    return `
+    <div class="lesson-row fade-in-up" style="animation-delay:${i*0.04}s" onclick="${it.type==='recurring'?`openRecurringEdit('${it.id}')`:`openOneoffEdit('${it.id}')`}">
+      <div class="swatch" style="background:${it.color}"></div>
+      <div class="lr-body"><div class="lr-title">${it.title}</div><div class="lr-sub">${typeLabel}</div></div>
+      ${timeHtml}
+    </div>`;
+  }).join('');
+}
+
+function renderEvents(){
+  const todayStr = isoDate(new Date());
+  const list = store.oneoff.filter(o=>o.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date));
+  const el = document.getElementById('eventList');
+  if(list.length===0){ el.innerHTML = '<div class="empty">אין כלום קרוב עדיין</div>'; return; }
+  el.innerHTML = list.map((o,i)=>{
+    const diff = Math.round((new Date(o.date)-new Date(todayStr))/86400000);
+    const c = catById(o.categoryId);
+    const dateStr = new Date(o.date).toLocaleDateString('he-IL',{day:'numeric',month:'short'});
+    const pillColor = diff<=1 ? 'var(--heavy)' : 'var(--brand)';
+    return `<div class="event-row fade-in-up" style="animation-delay:${i*0.04}s" onclick="openOneoffEdit('${o.id}')">
+      <div class="swatch" style="background:${diff<=1?'var(--heavy)':'var(--line)'}"></div>
+      <div class="lr-body"><div class="lr-title">${o.title}</div><div class="lr-sub">${c?c.name+' · ':''}${dateStr}${o.start?' · '+o.start:''}</div></div>
+      <span class="pill" style="background:${pillColor}22; color:${pillColor}">${kindLabel(o.kind)}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderCatSelects(){
+  [document.getElementById('rec-cat'), document.getElementById('oo-cat')].forEach((sel,idx)=>{
+    const keepEmpty = idx===1;
+    sel.innerHTML = (keepEmpty?'<option value="">— ללא —</option>':'') + store.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  });
+}
+function renderSwatchPicker(){
+  document.getElementById('cat-swatches').innerHTML = COLORS.map(col=>`<div class="sw-opt ${col===selectedColor?'sel':''}" style="background:${col}" onclick="pickColor('${col}')"></div>`).join('');
+}
+function pickColor(c){ selectedColor=c; renderSwatchPicker(); }
+function renderCatList(){
+  const el = document.getElementById('cat-list');
+  if(store.categories.length===0){ el.innerHTML=''; return; }
+  el.innerHTML = '<label style="margin-top:0;">הקטגוריות שלך (לחיצה לעריכה)</label>' + store.categories.map(c=>`
+    <div class="lesson-row" onclick="openCatEdit('${c.id}')">
+      <div class="swatch" style="background:${c.color}"></div>
+      <div class="lr-body"><div class="lr-title">${c.name}</div></div>
+    </div>`).join('');
+}
+function renderDaysPicker(){
+  document.getElementById('rec-days').innerHTML = DAY_NAMES.map((n,i)=>`<div class="dp ${selectedRecDays.has(i)?'sel':''}" onclick="toggleRecDay(${i})">${n}</div>`).join('');
+}
+function toggleRecDay(i){ if(selectedRecDays.has(i)) selectedRecDays.delete(i); else selectedRecDays.add(i); renderDaysPicker(); }
+function renderKinds(){
+  document.getElementById('oo-kinds').innerHTML = KINDS.map(k=>`<div class="kind-opt ${k.id===selectedKind?'sel':''}" onclick="pickKind('${k.id}')">${k.label}</div>`).join('');
+}
+function pickKind(k){ selectedKind=k; renderKinds(); }
+
+let recReminders = [];
+let ooReminders = [];
+function remArr(prefix){ return prefix==='rec' ? recReminders : ooReminders; }
+
+function addReminderRow(prefix){
+  remArr(prefix).push({minutes:30, channel:'push'});
+  renderReminderRows(prefix);
+}
+function removeReminderRow(prefix, idx){
+  remArr(prefix).splice(idx,1);
+  renderReminderRows(prefix);
+}
+function onReminderMinutesChange(prefix, idx, val){
+  const arr = remArr(prefix);
+  if(val==='custom'){
+    if(REMINDER_PRESETS.some(p=>p.val===String(arr[idx].minutes))) arr[idx].minutes = 45;
+  } else {
+    arr[idx].minutes = parseInt(val,10);
+  }
+  renderReminderRows(prefix);
+}
+function updateReminderRow(prefix, idx, field, value){
+  const arr = remArr(prefix);
+  arr[idx][field] = field==='minutes' ? (parseInt(value,10)||1) : value;
+  if(field==='channel' && value==='push'){
+    Notification.requestPermission().then(p=>{ if(p==='granted') subscribeToPush(); });
+  }
+  if(field==='channel' && value==='telegram' && !telegramLinked){
+    handleTelegramClick();
+  }
+}
+function renderReminderRows(prefix){
+  const arr = remArr(prefix);
+  const el = document.getElementById(prefix+'-reminders-list');
+  if(arr.length===0){ el.innerHTML = '<div class="empty">אין תזכורות - אפשר להוסיף כמה שתרצה</div>'; return; }
+  el.innerHTML = arr.map((r,i)=>{
+    const isPreset = REMINDER_PRESETS.some(p=>p.val===String(r.minutes));
+    return `<div class="reminder-row fade-in-up">
+      <select onchange="onReminderMinutesChange('${prefix}',${i},this.value)">
+        ${REMINDER_PRESETS.filter(p=>p.val!=='').map(p=>`<option value="${p.val}" ${(p.val==='custom'? !isPreset : String(r.minutes)===p.val)?'selected':''}>${p.label}</option>`).join('')}
+      </select>
+      ${!isPreset ? `<input type="number" min="1" value="${r.minutes}" onchange="updateReminderRow('${prefix}',${i},'minutes',this.value)">` : ''}
+      <select onchange="updateReminderRow('${prefix}',${i},'channel',this.value)">
+        <option value="push" ${r.channel==='push'?'selected':''}>Push</option>
+        <option value="local" ${r.channel==='local'?'selected':''}>בדפדפן פתוח</option>
+        <option value="telegram" ${r.channel==='telegram'?'selected':''}>טלגרם</option>
+      </select>
+      <span class="rm-x" onclick="removeReminderRow('${prefix}',${i})">✕</span>
+    </div>`;
+  }).join('');
+}
+async function loadRemindersFor(itemType, itemId){
+  return store.reminders.filter(r=>r.item_type===itemType && r.item_id===itemId).map(r=>({minutes:r.minutes_before, channel:r.channel}));
+}
+async function persistReminders(itemType, itemId, arr){
+  await sb.from('reminders').delete().eq('item_type', itemType).eq('item_id', itemId);
+  if(arr.length>0){
+    await sb.from('reminders').insert(arr.map(r=>({item_type:itemType, item_id:itemId, minutes_before:r.minutes, channel:r.channel})));
+  }
+}
+
+function renderAll(){
+  document.getElementById('todayDate').textContent = fmtDate(new Date());
+  preloadVisibleHolidayYears();
+  renderWeek(); renderHero(); renderDayList(); renderEvents(); renderCatSelects(); renderCatList();
+}
+
+function openSheet(tab){ document.getElementById('overlay').classList.add('open'); document.getElementById('sheet').classList.add('open'); switchTab(tab); }
+function closeSheet(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('sheet').classList.remove('open'); resetCatForm(); resetRecForm(); resetOneoffForm(); }
+function switchTab(tab){
+  ['category','recurring','oneoff'].forEach(t=>document.getElementById('tab-'+t).style.display = t===tab?'block':'none');
+  document.querySelectorAll('.tab[data-tab]').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
+  if(tab==='category'){ renderCatList(); if(!editingCatId){ selectedColor=COLORS[0]; renderSwatchPicker(); } }
+  if(tab==='recurring'){
+    if(!editingRecId) selectedRecDays=new Set();
+    renderDaysPicker(); renderCatSelects(); renderReminderRows('rec');
+    const has = store.categories.length>0;
+    document.getElementById('rec-no-cat').style.display = has?'none':'block';
+    document.getElementById('rec-fields').style.display = has?'block':'none';
+  }
+  if(tab==='oneoff'){
+    if(!editingOneoffId) selectedKind='meeting';
+    renderKinds(); renderCatSelects(); renderReminderRows('oo');
+    document.getElementById('oo-no-cat').style.display = store.categories.length>0?'none':'block';
+    if(!editingOneoffId && !document.getElementById('oo-date').value) document.getElementById('oo-date').value = selectedDate;
+  }
+}
+
+function resetCatForm(){ editingCatId=null; document.getElementById('cat-name').value=''; selectedColor=COLORS[0]; renderSwatchPicker(); document.getElementById('cat-save-btn').textContent='שמירה'; document.getElementById('cat-del-btn').style.display='none'; }
+function openCatEdit(id){ const c=catById(id); if(!c) return; editingCatId=id; document.getElementById('cat-name').value=c.name; selectedColor=c.color; renderSwatchPicker(); document.getElementById('cat-save-btn').textContent='עדכון'; document.getElementById('cat-del-btn').style.display='block'; openSheet('category'); }
+async function deleteCategory(){
+  if(!editingCatId) return;
+  if(!confirm('מחיקת קטגוריה תמחק גם קבועים משויכים אליה. להמשיך?')) return;
+  const id=editingCatId;
+  showLoading();
+  const {error} = await sb.from('categories').delete().eq('id', id);
+  if(error){ hideLoading(); alert('שגיאה במחיקה'); console.error(error); return; }
+  resetCatForm(); closeSheet(); await loadAll();
+}
+async function saveCategory(){
+  const name=document.getElementById('cat-name').value.trim();
+  if(!name) return;
+  showLoading();
+  let error;
+  if(editingCatId){
+    ({error} = await sb.from('categories').update({name, color:selectedColor}).eq('id', editingCatId));
+  } else {
+    ({error} = await sb.from('categories').insert({name, color:selectedColor}));
+  }
+  if(error){ hideLoading(); alert('שגיאה בשמירה'); console.error(error); return; }
+  resetCatForm(); closeSheet(); await loadAll();
+}
+
+function resetRecForm(){ editingRecId=null; selectedRecDays=new Set(); document.getElementById('rec-title').value=''; document.getElementById('rec-loc').value=''; document.getElementById('rec-start').value='10:00'; document.getElementById('rec-end').value='12:00'; document.getElementById('rec-save-btn').textContent='שמירה'; document.getElementById('rec-del-btn').style.display='none'; recReminders=[]; renderReminderRows('rec'); }
+function openRecurringEdit(id){ const r=store.recurring.find(x=>x.id===id); if(!r) return; editingRecId=id; renderCatSelects(); document.getElementById('rec-cat').value=r.categoryId; document.getElementById('rec-title').value=r.title||''; selectedRecDays=new Set(r.days); document.getElementById('rec-start').value=r.start; document.getElementById('rec-end').value=r.end; document.getElementById('rec-loc').value=r.loc||''; document.getElementById('rec-save-btn').textContent='עדכון'; document.getElementById('rec-del-btn').style.display='block'; openSheet('recurring'); renderDaysPicker(); recReminders=store.reminders.filter(x=>x.item_type==='recurring'&&x.item_id===id).map(x=>({minutes:x.minutes_before, channel:x.channel})); renderReminderRows('rec'); }
+async function deleteRecurring(){
+  if(!editingRecId) return;
+  if(!confirm('למחוק את הפריט הקבוע הזה?')) return;
+  showLoading();
+  await sb.from('reminders').delete().eq('item_type','recurring').eq('item_id', editingRecId);
+  const {error} = await sb.from('recurring').delete().eq('id', editingRecId);
+  if(error){ hideLoading(); alert('שגיאה במחיקה'); console.error(error); return; }
+  resetRecForm(); closeSheet(); await loadAll();
+}
+async function saveRecurring(){
+  const categoryId=document.getElementById('rec-cat').value;
+  const start=document.getElementById('rec-start').value;
+  const end=document.getElementById('rec-end').value;
+  const loc=document.getElementById('rec-loc').value.trim();
+  const title=document.getElementById('rec-title').value.trim();
+  if(!categoryId){ alert('צריך לבחור קטגוריה'); return; }
+  if(!title){ alert('צריך להזין שם לאירוע'); return; }
+  if(selectedRecDays.size===0){ alert('צריך לבחור לפחות יום אחד'); return; }
+  showLoading();
+  const row = {category_id:categoryId, title, days:[...selectedRecDays], start_time:start, end_time:end, location:loc};
+  let error, savedId=editingRecId;
+  if(editingRecId){ ({error} = await sb.from('recurring').update(row).eq('id', editingRecId)); }
+  else {
+    const res = await sb.from('recurring').insert(row).select().single();
+    error = res.error; savedId = res.data ? res.data.id : null;
+  }
+  if(error){ hideLoading(); alert('שגיאה בשמירה'); console.error(error); return; }
+  if(savedId) await persistReminders('recurring', savedId, recReminders);
+  resetRecForm(); closeSheet(); await loadAll();
+}
+
+function resetOneoffForm(){ editingOneoffId=null; selectedKind='meeting'; document.getElementById('oo-title').value=''; document.getElementById('oo-date').value=''; document.getElementById('oo-start').value=''; document.getElementById('oo-end').value=''; document.getElementById('oo-save-btn').textContent='שמירה'; document.getElementById('oo-del-btn').style.display='none'; ooReminders=[]; renderReminderRows('oo'); }
+function openOneoffEdit(id){ const o=store.oneoff.find(x=>x.id===id); if(!o) return; editingOneoffId=id; renderCatSelects(); document.getElementById('oo-title').value=o.title; document.getElementById('oo-date').value=o.date; document.getElementById('oo-cat').value=o.categoryId||''; document.getElementById('oo-start').value=o.start||''; document.getElementById('oo-end').value=o.end||''; selectedKind=o.kind; document.getElementById('oo-save-btn').textContent='עדכון'; document.getElementById('oo-del-btn').style.display='block'; openSheet('oneoff'); ooReminders=store.reminders.filter(x=>x.item_type==='oneoff'&&x.item_id===id).map(x=>({minutes:x.minutes_before, channel:x.channel})); renderReminderRows('oo'); }
+async function deleteOneoff(){
+  if(!editingOneoffId) return;
+  if(!confirm('למחוק את הפריט הזה?')) return;
+  showLoading();
+  await sb.from('reminders').delete().eq('item_type','oneoff').eq('item_id', editingOneoffId);
+  const {error} = await sb.from('oneoff').delete().eq('id', editingOneoffId);
+  if(error){ hideLoading(); alert('שגיאה במחיקה'); console.error(error); return; }
+  resetOneoffForm(); closeSheet(); await loadAll();
+}
+async function saveOneoff(){
+  const title=document.getElementById('oo-title').value.trim();
+  const date=document.getElementById('oo-date').value;
+  const categoryId=document.getElementById('oo-cat').value;
+  const start=document.getElementById('oo-start').value;
+  const end=document.getElementById('oo-end').value;
+  if(!title){ alert('צריך להזין כותרת'); return; }
+  if(!date){ alert('צריך לבחור תאריך'); return; }
+  showLoading();
+  const row = {category_id:categoryId||null, title, date, start_time:start||null, end_time:end||null, kind:selectedKind};
+  let error, savedId=editingOneoffId;
+  if(editingOneoffId){ ({error} = await sb.from('oneoff').update(row).eq('id', editingOneoffId)); }
+  else {
+    const res = await sb.from('oneoff').insert(row).select().single();
+    error = res.error; savedId = res.data ? res.data.id : null;
+  }
+  if(error){ hideLoading(); alert('שגיאה בשמירה'); console.error(error); return; }
+  if(savedId) await persistReminders('oneoff', savedId, ooReminders);
+  resetOneoffForm(); closeSheet(); await loadAll();
+}
+
+function requestNotifPermission(){
+  if(!('Notification' in window)) return;
+  Notification.requestPermission().then(perm=>{
+    updateNotifSettingsRow();
+    if(perm==='granted') subscribeToPush();
+  });
+}
+
+function getFiredSet(){ return new Set(JSON.parse(localStorage.getItem('ss_fired_reminders')||'[]')); }
+function markFired(key){
+  const set = getFiredSet(); set.add(key);
+  const arr = [...set].slice(-500);
+  localStorage.setItem('ss_fired_reminders', JSON.stringify(arr));
+}
+
+function checkReminders(){
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  const fired = getFiredSet();
+  const now = new Date();
+  const localReminders = store.reminders.filter(r=>r.channel==='local');
+  [0,1].forEach(offset=>{
+    const d = new Date(); d.setDate(d.getDate()+offset);
+    const ds = isoDate(d);
+    const wd = d.getDay();
+    store.recurring.forEach(r=>{
+      if(!r.days.includes(wd)) return;
+      const rems = localReminders.filter(x=>x.item_type==='recurring' && x.item_id===r.id);
+      rems.forEach(rem=>{
+        const [sh,sm] = r.start.split(':').map(Number);
+        const occ = new Date(d); occ.setHours(sh,sm,0,0);
+        const trigger = new Date(occ.getTime() - rem.minutes_before*60000);
+        const key = 'rec-'+r.id+'-'+ds+'-'+rem.minutes_before;
+        if(now>=trigger && now<new Date(trigger.getTime()+120000) && !fired.has(key)){
+          new Notification(r.title||'תזכורת', {body:`מתחיל ב-${r.start}${r.loc?' · '+r.loc:''}`});
+          markFired(key);
+        }
+      });
+    });
+    store.oneoff.forEach(o=>{
+      if(o.date!==ds) return;
+      const rems = localReminders.filter(x=>x.item_type==='oneoff' && x.item_id===o.id);
+      rems.forEach(rem=>{
+        const [sh,sm] = (o.start||'09:00').split(':').map(Number);
+        const occ = new Date(d); occ.setHours(sh,sm,0,0);
+        const trigger = new Date(occ.getTime() - rem.minutes_before*60000);
+        const key = 'oo-'+o.id+'-'+rem.minutes_before;
+        if(now>=trigger && now<new Date(trigger.getTime()+120000) && !fired.has(key)){
+          new Notification(o.title, {body:`${kindLabel(o.kind)}${o.start?' · '+o.start:''}`});
+          markFired(key);
+        }
+      });
+    });
+  });
+}
+
+registerSW();
+setInterval(renderHero, 60000);
+setInterval(checkReminders, 30000);
+</script>
+</body>
+</html>
