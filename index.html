@@ -80,21 +80,30 @@
     <div><h1>שלום</h1><div class="date" id="todayDate"></div></div>
   </div>
 
-  <div class="hero" id="heroCard"></div>
-
-  <div class="week-nav">
-    <span class="wk-arrow" onclick="changeWeek(1)">›</span>
-    <span class="wk-label" id="weekLabel"></span>
-    <span class="wk-arrow" onclick="changeWeek(-1)">‹</span>
+  <div class="main-tabs" role="tablist" aria-label="ניווט ראשי">
+    <button class="main-tab active" id="mainTabHome" onclick="switchMainView('home')" role="tab" aria-selected="true">ראשי</button>
+    <button class="main-tab" id="mainTabWeek" onclick="switchMainView('week')" role="tab" aria-selected="false">שבוע</button>
   </div>
-  <div class="week" id="weekStrip"></div>
 
-  <div class="holiday-banner" id="holidayBanner"></div>
+  <div class="main-view active" id="mainViewHome">
+    <div class="hero" id="heroCard"></div>
+  </div>
 
-  <section>
-    <div class="sec-title"><span>קרוב אליי (מבחנים, הגשות, פגישות...)</span><span class="add" onclick="openSheet('oneoff')">+ אירוע חד־פעמי</span></div>
-    <div id="eventList"></div>
-  </section>
+  <div class="main-view" id="mainViewWeek">
+    <div class="week-nav">
+      <span class="wk-arrow" onclick="changeWeek(1)">›</span>
+      <span class="wk-label" id="weekLabel"></span>
+      <span class="wk-arrow" onclick="changeWeek(-1)">‹</span>
+    </div>
+    <div class="week" id="weekStrip"></div>
+
+    <div class="holiday-banner" id="holidayBanner"></div>
+
+    <section>
+      <div class="sec-title"><span>קרוב אליי (מבחנים, הגשות, פגישות...)</span><span class="add" onclick="openSheet('oneoff')">+ אירוע חד־פעמי</span></div>
+      <div id="eventList"></div>
+    </section>
+  </div>
 </div>
 
 <button type="button" class="fab" onclick="openSheet('category')">+ הוספה מהירה</button>

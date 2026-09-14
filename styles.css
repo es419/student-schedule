@@ -24,6 +24,13 @@
   .top .date{color:var(--text-dim); font-size:13px;}
   .top h1{font-size:22px;}
 
+  .main-tabs{display:flex; gap:4px; background:var(--surface); border:1px solid var(--line); padding:4px; border-radius:14px; margin-bottom:16px;}
+  .main-tab{flex:1; min-height:40px; border:0; background:transparent; color:var(--text-dim); border-radius:10px; font:600 13px 'Inter',sans-serif; cursor:pointer;}
+  .main-tab.active{background:var(--brand); color:#14141c;}
+  .main-view{display:none;}
+  .main-view.active{display:block;}
+
+
   .hero{background:linear-gradient(155deg, var(--surface-2), var(--surface)); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px;}
   .hero .eyebrow{font-size:11px; letter-spacing:.08em; color:var(--brand); text-transform:uppercase; font-weight:600;}
   .hero .main-line{font-size:20px; font-family:'Fraunces',serif; font-weight:600; margin:6px 0 2px;}
@@ -31,9 +38,7 @@
   .hero-time-range{display:inline-flex; direction:ltr; unicode-bidi:isolate; gap:4px; align-items:center; font-family:'JetBrains Mono',monospace;}
   .hero-time-sep{opacity:.65;}
   .hero-location::before{content:'·'; margin-inline-end:8px;}
-  .hero .countdown{margin-top:14px; padding-top:14px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;}
-  .hero .countdown .label{font-size:12.5px; color:var(--text-dim);}
-  .hero .countdown .num{font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:600;}
+  .hero-notes{margin-top:10px; padding-top:10px; border-top:1px solid var(--line); color:var(--text-dim); font-size:13px; line-height:1.55;}
 
   .week-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
   .week-nav .wk-label{font-size:12.5px; color:var(--text-dim);}

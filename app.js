@@ -275,8 +275,8 @@ function preloadVisibleHolidayYears(){
 
 // -- mapping helpers: DB uses snake_case, app logic uses the shorter names below --
 function mapCatFromDb(r){ return {id:r.id, name:r.name, color:r.color}; }
-function mapRecFromDb(r){ return {id:r.id, categoryId:r.category_id, title:r.title, days:r.days, start:r.start_time, end:r.end_time, loc:r.location}; }
-function mapOoFromDb(r){ return {id:r.id, categoryId:r.category_id, title:r.title, date:r.date, start:r.start_time||'', end:r.end_time||'', kind:r.kind}; }
+function mapRecFromDb(r){ return {id:r.id, categoryId:r.category_id, title:r.title, days:r.days, start:r.start_time, end:r.end_time, loc:r.location, notes:r.notes||r.note||''}; }
+function mapOoFromDb(r){ return {id:r.id, categoryId:r.category_id, title:r.title, date:r.date, start:r.start_time||'', end:r.end_time||'', kind:r.kind, notes:r.notes||r.note||''}; }
 
 
 async function loadAll({showSpinner=true} = {}){
@@ -313,6 +313,7 @@ function kindLabel(k){ return (KINDS.find(x=>x.id===k)||{}).label || 'אחר'; }
 function isoDate(d){ const off=d.getTimezoneOffset(); const local=new Date(d.getTime()-off*60000); return local.toISOString().slice(0,10); }
 
 let weekOffset = 0;
+let mainView = 'home';
 let selectedDate = isoDate(new Date());
 let selectedColor = COLORS[0];
 let selectedRecDays = new Set();
@@ -331,10 +332,10 @@ function itemsForDate(dateObj){
   const wd = dateObj.getDay();
   const ds = isoDate(dateObj);
   const recItems = store.recurring.filter(r=>r.days.includes(wd)).map(r=>({
-    id:r.id, type:'recurring', start:r.start, end:r.end, title:r.title||(catById(r.categoryId)?.name)||'אירוע קבוע', loc:r.loc, color:(catById(r.categoryId)?.color)||'#888'
+    id:r.id, type:'recurring', start:r.start, end:r.end, title:r.title||(catById(r.categoryId)?.name)||'אירוע קבוע', loc:r.loc, notes:r.notes||'', color:(catById(r.categoryId)?.color)||'#888'
   }));
   const ooItems = store.oneoff.filter(o=>o.date===ds && o.start).map(o=>({
-    id:o.id, type:'oneoff', start:o.start, end:o.end, title:o.title, loc:kindLabel(o.kind), color:(catById(o.categoryId)?.color)||'#888'
+    id:o.id, type:'oneoff', start:o.start, end:o.end, title:o.title, loc:kindLabel(o.kind), notes:o.notes||'', color:(catById(o.categoryId)?.color)||'#888'
   }));
   // deadlines with no fixed time: show as a running reminder on every day up to (and including) the due date
   const todayStr = isoDate(new Date());
@@ -366,6 +367,18 @@ function loadDifficulty(dateObj){
   return hours + weight;
 }
 function loadColor(score){ if(score<=2) return 'var(--calm)'; if(score<=5) return 'var(--mid)'; return 'var(--heavy)'; }
+
+
+function switchMainView(view){
+  mainView = view === 'week' ? 'week' : 'home';
+  const isHome = mainView === 'home';
+  document.getElementById('mainViewHome').classList.toggle('active', isHome);
+  document.getElementById('mainViewWeek').classList.toggle('active', !isHome);
+  document.getElementById('mainTabHome').classList.toggle('active', isHome);
+  document.getElementById('mainTabWeek').classList.toggle('active', !isHome);
+  document.getElementById('mainTabHome').setAttribute('aria-selected', String(isHome));
+  document.getElementById('mainTabWeek').setAttribute('aria-selected', String(!isHome));
+}
 
 function changeWeek(delta){ weekOffset -= delta; renderAll(); }
 
@@ -400,35 +413,26 @@ function renderHero(){
     const [sh,sm]=it.start.split(':').map(Number), [eh,em]=it.end.split(':').map(Number);
     return {...it, startMin:sh*60+sm, endMin:eh*60+em};
   });
-  const current = todayItems.find(it=>nowMin>=it.startMin && nowMin<it.endMin);
-  const next = todayItems.find(it=>it.startMin>nowMin);
+  const upcoming = todayItems.find(it=>it.endMin>nowMin);
   const hero = document.getElementById('heroCard');
   let html;
-  if(current){
-    html = `<div class="eyebrow">עכשיו</div><div class="main-line">${current.title}</div>${heroMetaHtml(current)}${nextCountdownHtml()}`;
-  } else if(next){
-    html = `<div class="eyebrow">הבא בתור</div><div class="main-line">${next.title}</div>${heroMetaHtml(next)}${nextCountdownHtml()}`;
+  if(upcoming){
+    html = `<div class="eyebrow">הבא בתור</div><div class="main-line">${upcoming.title}</div>${heroMetaHtml(upcoming)}`;
   } else {
-    html = `<div class="eyebrow">היום</div><div class="main-line">אין עוד דברים קבועים היום</div><div class="sub-line">זמן פנוי</div>${nextCountdownHtml()}`;
+    html = `<div class="eyebrow">הבא בתור</div><div class="main-line">אין עוד אירועים היום</div><div class="sub-line">היום שלך פנוי מכאן והלאה</div>`;
   }
-  if(hero.innerHTML !== html){
-    hero.innerHTML = html;
-  }
+  if(hero.innerHTML !== html) hero.innerHTML = html;
 }
 
 function heroMetaHtml(item){
-  const timeRange = `<span class="hero-time-range"><span>${item.end}</span><span class="hero-time-sep">–</span><span>${item.start}</span></span>`;
-  const location = item.loc ? `<span class="hero-location">${item.loc}</span>` : '';
-  return `<div class="sub-line">${timeRange}${location}</div>`;
-}
-
-function nextCountdownHtml(){
-  const todayStr = isoDate(new Date());
-  const upcoming = store.oneoff.filter(o=>o.date && o.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date)||(a.start||'').localeCompare(b.start||''))[0];
-  if(!upcoming) return '';
-  const diff = Math.round((new Date(upcoming.date)-new Date(todayStr))/86400000);
-  const label = diff===0?'היום':diff===1?'מחר':`בעוד ${diff} ימים`;
-  return `<div class="countdown"><div><div class="label">${kindLabel(upcoming.kind)} הכי קרוב: ${upcoming.title}</div></div><div class="num">${label}</div></div>`;
+  const parts = [];
+  if(item.start || item.end){
+    const timeRange = `<span class="hero-time-range"><span>${item.end||''}</span><span class="hero-time-sep">–</span><span>${item.start||''}</span></span>`;
+    parts.push(timeRange);
+  }
+  if(item.loc) parts.push(`<span class="hero-location">${item.loc}</span>`);
+  const notes = item.notes ? `<div class="hero-notes">${item.notes}</div>` : '';
+  return `<div class="sub-line">${parts.join('')}</div>${notes}`;
 }
 
 function renderHolidayBanner(){
@@ -556,7 +560,7 @@ async function persistReminders(itemType, itemId, arr){
 function renderAll(){
   document.getElementById('todayDate').textContent = fmtDate(new Date());
   preloadVisibleHolidayYears();
-  renderWeek(); renderHero(); renderHolidayBanner(); renderEvents(); renderCatSelects(); renderCatList();
+  renderWeek(); renderHero(); renderHolidayBanner(); renderEvents(); renderCatSelects(); renderCatList(); switchMainView(mainView);
 }
 
 let lockedScrollY = 0;
