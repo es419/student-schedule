@@ -334,17 +334,18 @@ function itemsForDate(dateObj){
   const recItems = store.recurring.filter(r=>r.days.includes(wd)).map(r=>({
     id:r.id, type:'recurring', start:r.start, end:r.end, title:r.title||(catById(r.categoryId)?.name)||'אירוע קבוע', loc:r.loc, notes:r.notes||'', color:(catById(r.categoryId)?.color)||'#888'
   }));
-  const ooItems = store.oneoff.filter(o=>o.date===ds && o.start).map(o=>({
-    id:o.id, type:'oneoff', start:o.start, end:o.end, title:o.title, loc:kindLabel(o.kind), notes:o.notes||'', color:(catById(o.categoryId)?.color)||'#888'
+  // One-off items belong to exactly one calendar date. Never spread them across adjacent days.
+  const ooItems = store.oneoff.filter(o=>o.date===ds).map(o=>({
+    id:o.id,
+    type:'oneoff',
+    start:o.start||'',
+    end:o.end||'',
+    title:o.title,
+    loc:kindLabel(o.kind),
+    notes:o.notes||'',
+    color:(catById(o.categoryId)?.color)||'#888'
   }));
-  // deadlines with no fixed time: show as a running reminder on every day up to (and including) the due date
-  const todayStr = isoDate(new Date());
-  const deadlineItems = store.oneoff.filter(o=>o.kind==='deadline' && !o.start && o.date>=ds && ds>=todayStr).map(o=>{
-    const daysLeft = Math.round((new Date(o.date)-new Date(ds))/86400000);
-    const label = daysLeft===0 ? 'להגיש היום!' : daysLeft===1 ? 'להגיש מחר' : `להגיש בעוד ${daysLeft} ימים`;
-    return {id:o.id, type:'deadline', start:'', end:'', title:o.title, loc:label, dueSoon:daysLeft<=1, color:(catById(o.categoryId)?.color)||'var(--heavy)'};
-  });
-  return [...deadlineItems, ...recItems, ...ooItems].sort((a,b)=>a.start.localeCompare(b.start));
+  return [...recItems, ...ooItems].sort((a,b)=>(a.start||'99:99').localeCompare(b.start||'99:99'));
 }
 
 function loadDifficulty(dateObj){
@@ -406,28 +407,97 @@ function renderWeek(){
   });
 }
 
-function renderHero(){
+function upcomingOccurrences(limit=4){
   const now = new Date();
-  const nowMin = now.getHours()*60+now.getMinutes();
-  const todayItems = itemsForDate(now).filter(it=>it.start).map(it=>{
-    const [sh,sm]=it.start.split(':').map(Number), [eh,em]=it.end.split(':').map(Number);
-    return {...it, startMin:sh*60+sm, endMin:eh*60+em};
-  });
-  const upcoming = todayItems.find(it=>it.endMin>nowMin);
-  const hero = document.getElementById('heroCard');
-  let html;
-  if(upcoming){
-    html = `<div class="eyebrow">הבא בתור</div><div class="main-line">${upcoming.title}</div>${heroMetaHtml(upcoming)}`;
-  } else {
-    html = `<div class="eyebrow">הבא בתור</div><div class="main-line">אין עוד אירועים היום</div><div class="sub-line">היום שלך פנוי מכאן והלאה</div>`;
+  const results = [];
+
+  // Scan forward by calendar day so recurring and one-off events use one path.
+  // 8 weeks is enough to find the next few weekly occurrences without expensive work.
+  for(let offset=0; offset<56 && results.length<limit; offset++){
+    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate()+offset);
+    const ds = isoDate(day);
+    const items = itemsForDate(day);
+
+    items.forEach(item=>{
+      if(results.length>=limit) return;
+
+      // On today, skip timed events that already ended. Untimed one-off items remain visible today.
+      if(offset===0 && item.end){
+        const [eh,em] = item.end.split(':').map(Number);
+        const endAt = new Date(day.getFullYear(), day.getMonth(), day.getDate(), eh||0, em||0);
+        if(endAt <= now) return;
+      }
+
+      results.push({...item, date:ds, dateObj:day});
+    });
   }
+
+  return results.slice(0, limit);
+}
+
+function renderHero(){
+  const hero = document.getElementById('heroCard');
+  const upcoming = upcomingOccurrences(4);
+
+  if(upcoming.length===0){
+    const html = `<div class="upcoming-heading">הבאים בתור</div><div class="upcoming-empty">אין אירועים קרובים</div>`;
+    if(hero.innerHTML !== html) hero.innerHTML = html;
+    return;
+  }
+
+  const groups = [];
+  upcoming.forEach(item=>{
+    let group = groups.find(g=>g.date===item.date);
+    if(!group){
+      group = {date:item.date, dateObj:item.dateObj, items:[]};
+      groups.push(group);
+    }
+    group.items.push(item);
+  });
+
+  const today = isoDate(new Date());
+  const tomorrow = isoDate(new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()+1));
+  const dateLabel = (g)=>{
+    if(g.date===today) return 'היום';
+    if(g.date===tomorrow) return 'מחר';
+    return g.dateObj.toLocaleDateString('he-IL',{weekday:'long', day:'numeric', month:'long'});
+  };
+
+  const html = `
+    <div class="upcoming-heading">הבאים בתור</div>
+    <div class="upcoming-groups">
+      ${groups.map(group=>`
+        <article class="upcoming-group">
+          <div class="upcoming-date">${dateLabel(group)}</div>
+          <div class="upcoming-events">
+            ${group.items.map(item=>`
+              <div class="upcoming-event">
+                <div class="upcoming-accent" style="background:${item.color||'var(--brand)'}"></div>
+                <div class="upcoming-event-body">
+                  <div class="upcoming-title-row">
+                    <div class="upcoming-title">${item.title}</div>
+                    <span class="event-type-badge ${item.type==='oneoff'?'oneoff':'recurring'}">
+                      ${item.type==='oneoff'?'חד־פעמי':'קבוע'}
+                    </span>
+                  </div>
+                  ${heroMetaHtml(item)}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </article>
+      `).join('')}
+    </div>`;
+
   if(hero.innerHTML !== html) hero.innerHTML = html;
 }
 
 function heroMetaHtml(item){
   const parts = [];
   if(item.start || item.end){
-    const timeRange = `<bdi class="hero-time-range" dir="ltr">${item.start||''} - ${item.end||''}</bdi>`;
+    const start = item.start || '';
+    const end = item.end || '';
+    const timeRange = `<bdi class="hero-time-range" dir="ltr">${start}${start&&end?' - ':''}${end}</bdi>`;
     parts.push(timeRange);
   }
   if(item.loc) parts.push(`<span class="hero-location">${item.loc}</span>`);
@@ -454,12 +524,12 @@ function renderHolidayBanner(){
 }
 
 function renderEvents(){
-  const todayStr = isoDate(new Date());
-  const list = store.oneoff.filter(o=>o.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date));
+  // The week view follows the selected day: show one-off events only on their own date.
+  const list = store.oneoff.filter(o=>o.date===selectedDate).sort((a,b)=>(a.start||'99:99').localeCompare(b.start||'99:99'));
   const el = document.getElementById('eventList');
   if(list.length===0){ el.innerHTML = '<div class="empty">אין כלום קרוב עדיין</div>'; return; }
   el.innerHTML = list.map((o)=>{
-    const diff = Math.round((new Date(o.date)-new Date(todayStr))/86400000);
+    const diff = 0;
     const c = catById(o.categoryId);
     const dateStr = new Date(o.date).toLocaleDateString('he-IL',{day:'numeric',month:'short'});
     const pillColor = diff<=1 ? 'var(--heavy)' : 'var(--brand)';
