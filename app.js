@@ -427,7 +427,7 @@ function renderHero(){
 function heroMetaHtml(item){
   const parts = [];
   if(item.start || item.end){
-    const timeRange = `<span class="hero-time-range"><span>${item.end||''}</span><span class="hero-time-sep">–</span><span>${item.start||''}</span></span>`;
+    const timeRange = `<bdi class="hero-time-range" dir="ltr">${item.start||''} - ${item.end||''}</bdi>`;
     parts.push(timeRange);
   }
   if(item.loc) parts.push(`<span class="hero-location">${item.loc}</span>`);
