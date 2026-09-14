@@ -568,11 +568,13 @@ function lockAppScroll(){
   if(document.body.classList.contains('modal-open')) return;
   lockedScrollY = window.scrollY || 0;
   document.body.style.top = `-${lockedScrollY}px`;
+  document.documentElement.classList.add('modal-open');
   document.body.classList.add('modal-open');
 }
 function unlockAppScroll(){
   if(!document.body.classList.contains('modal-open')) return;
   document.body.classList.remove('modal-open');
+  document.documentElement.classList.remove('modal-open');
   document.body.style.top = '';
   window.scrollTo(0, lockedScrollY);
 }
@@ -815,10 +817,6 @@ syncVisualViewport();
 window.visualViewport?.addEventListener('resize', syncVisualViewport, {passive:true});
 window.visualViewport?.addEventListener('scroll', syncVisualViewport, {passive:true});
 window.addEventListener('orientationchange', ()=>setTimeout(syncVisualViewport, 120), {passive:true});
-document.addEventListener('focusin', (e)=>{
-  if(!e.target.matches('input,select,textarea')) return;
-  setTimeout(()=>e.target.scrollIntoView({block:'nearest', behavior:'smooth'}), 180);
-});
 document.addEventListener('keydown', (e)=>{
   if(e.key!=='Escape') return;
   if(document.getElementById('settingsSheet').classList.contains('open')) closeSettings();
