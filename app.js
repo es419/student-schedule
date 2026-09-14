@@ -382,8 +382,7 @@ function renderWeek(){
     const score = scores[i];
     const pct = Math.min(100, Math.round((score/maxScore)*100));
     const chip = document.createElement('div');
-    chip.className = 'day-chip fade-in-up' + (ds===todayStr?' today':'') + (ds===selectedDate?' sel':'');
-    chip.style.animationDelay = (i*0.04)+'s';
+    chip.className = 'day-chip' + (ds===todayStr?' today':'') + (ds===selectedDate?' sel':'');
     chip.onclick = ()=>{ selectedDate=ds; renderAll(); };
     chip.innerHTML = `
       <div class="dname">${DAY_NAMES[d.getDay()]}</div>
@@ -406,17 +405,23 @@ function renderHero(){
   const hero = document.getElementById('heroCard');
   let html;
   if(current){
-    html = `<div class="eyebrow">עכשיו</div><div class="main-line">${current.title}</div><div class="sub-line">${current.start}–${current.end}${current.loc?' · '+current.loc:''}</div>${nextCountdownHtml()}`;
+    html = `<div class="eyebrow">עכשיו</div><div class="main-line">${current.title}</div>${heroMetaHtml(current)}${nextCountdownHtml()}`;
   } else if(next){
-    html = `<div class="eyebrow">הבא בתור</div><div class="main-line">${next.title}</div><div class="sub-line">${next.start}–${next.end}${next.loc?' · '+next.loc:''}</div>${nextCountdownHtml()}`;
+    html = `<div class="eyebrow">הבא בתור</div><div class="main-line">${next.title}</div>${heroMetaHtml(next)}${nextCountdownHtml()}`;
   } else {
     html = `<div class="eyebrow">היום</div><div class="main-line">אין עוד דברים קבועים היום</div><div class="sub-line">זמן פנוי</div>${nextCountdownHtml()}`;
   }
   if(hero.innerHTML !== html){
-    hero.style.opacity = '0';
-    setTimeout(()=>{ hero.innerHTML = html; hero.style.opacity = '1'; }, 150);
+    hero.innerHTML = html;
   }
 }
+
+function heroMetaHtml(item){
+  const timeRange = `<span class="hero-time-range"><span>${item.end}</span><span class="hero-time-sep">–</span><span>${item.start}</span></span>`;
+  const location = item.loc ? `<span class="hero-location">${item.loc}</span>` : '';
+  return `<div class="sub-line">${timeRange}${location}</div>`;
+}
+
 function nextCountdownHtml(){
   const todayStr = isoDate(new Date());
   const upcoming = store.oneoff.filter(o=>o.date && o.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date)||(a.start||'').localeCompare(b.start||''))[0];
@@ -444,38 +449,17 @@ function renderHolidayBanner(){
   el.classList.add('show');
 }
 
-function renderDayList(){
-  const d = new Date(selectedDate);
-  const todayStr = isoDate(new Date());
-  document.getElementById('dayListTitle').textContent = selectedDate===todayStr ? 'היום' : DAY_NAMES_FULL[d.getDay()]+' · '+d.toLocaleDateString('he-IL',{day:'numeric',month:'short'});
-  const items = itemsForDate(d);
-  const el = document.getElementById('dayList');
-  if(items.length===0){ el.innerHTML = '<div class="empty">אין כלום מתוזמן ביום הזה</div>'; return; }
-  el.innerHTML = items.map((it,i)=>{
-    const typeLabel = it.type==='recurring' ? 'קבוע' : it.type==='deadline' ? it.loc : 'חד־פעמי';
-    const timeHtml = it.type==='deadline'
-      ? `<div class="lr-time" style="color:${it.dueSoon?'var(--heavy)':'var(--text-dim)'}">⏳</div>`
-      : `<div class="lr-time">${it.start}<span class="arrow">→</span>${it.end}</div>`;
-    return `
-    <div class="lesson-row fade-in-up" style="animation-delay:${i*0.04}s" onclick="${it.type==='recurring'?`openRecurringEdit('${it.id}')`:`openOneoffEdit('${it.id}')`}">
-      <div class="swatch" style="background:${it.color}"></div>
-      <div class="lr-body"><div class="lr-title">${it.title}</div><div class="lr-sub">${typeLabel}</div></div>
-      ${timeHtml}
-    </div>`;
-  }).join('');
-}
-
 function renderEvents(){
   const todayStr = isoDate(new Date());
   const list = store.oneoff.filter(o=>o.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date));
   const el = document.getElementById('eventList');
   if(list.length===0){ el.innerHTML = '<div class="empty">אין כלום קרוב עדיין</div>'; return; }
-  el.innerHTML = list.map((o,i)=>{
+  el.innerHTML = list.map((o)=>{
     const diff = Math.round((new Date(o.date)-new Date(todayStr))/86400000);
     const c = catById(o.categoryId);
     const dateStr = new Date(o.date).toLocaleDateString('he-IL',{day:'numeric',month:'short'});
     const pillColor = diff<=1 ? 'var(--heavy)' : 'var(--brand)';
-    return `<div class="event-row fade-in-up" style="animation-delay:${i*0.04}s" onclick="openOneoffEdit('${o.id}')">
+    return `<div class="event-row" onclick="openOneoffEdit('${o.id}')">
       <div class="swatch" style="background:${diff<=1?'var(--heavy)':'var(--line)'}"></div>
       <div class="lr-body"><div class="lr-title">${o.title}</div><div class="lr-sub">${c?c.name+' · ':''}${dateStr}${o.start?' · '+o.start:''}</div></div>
       <span class="pill" style="background:${pillColor}22; color:${pillColor}">${kindLabel(o.kind)}</span>
@@ -548,7 +532,7 @@ function renderReminderRows(prefix){
   if(arr.length===0){ el.innerHTML = '<div class="empty">אין תזכורות - אפשר להוסיף כמה שתרצה</div>'; return; }
   el.innerHTML = arr.map((r,i)=>{
     const isPreset = REMINDER_PRESETS.some(p=>p.val===String(r.minutes));
-    return `<div class="reminder-row fade-in-up">
+    return `<div class="reminder-row">
       <select onchange="onReminderMinutesChange('${prefix}',${i},this.value)">
         ${REMINDER_PRESETS.filter(p=>p.val!=='').map(p=>`<option value="${p.val}" ${(p.val==='custom'? !isPreset : String(r.minutes)===p.val)?'selected':''}>${p.label}</option>`).join('')}
       </select>
@@ -572,7 +556,7 @@ async function persistReminders(itemType, itemId, arr){
 function renderAll(){
   document.getElementById('todayDate').textContent = fmtDate(new Date());
   preloadVisibleHolidayYears();
-  renderWeek(); renderHero(); renderHolidayBanner(); renderDayList(); renderEvents(); renderCatSelects(); renderCatList();
+  renderWeek(); renderHero(); renderHolidayBanner(); renderEvents(); renderCatSelects(); renderCatList();
 }
 
 let lockedScrollY = 0;

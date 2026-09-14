@@ -27,7 +27,10 @@
   .hero{background:linear-gradient(155deg, var(--surface-2), var(--surface)); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:16px;}
   .hero .eyebrow{font-size:11px; letter-spacing:.08em; color:var(--brand); text-transform:uppercase; font-weight:600;}
   .hero .main-line{font-size:20px; font-family:'Fraunces',serif; font-weight:600; margin:6px 0 2px;}
-  .hero .sub-line{color:var(--text-dim); font-size:13.5px;}
+  .hero .sub-line{color:var(--text-dim); font-size:13.5px; display:flex; align-items:center; justify-content:flex-start; gap:8px;}
+  .hero-time-range{display:inline-flex; direction:ltr; unicode-bidi:isolate; gap:4px; align-items:center; font-family:'JetBrains Mono',monospace;}
+  .hero-time-sep{opacity:.65;}
+  .hero-location::before{content:'·'; margin-inline-end:8px;}
   .hero .countdown{margin-top:14px; padding-top:14px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;}
   .hero .countdown .label{font-size:12.5px; color:var(--text-dim);}
   .hero .countdown .num{font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:600;}
@@ -36,7 +39,7 @@
   .week-nav .wk-label{font-size:12.5px; color:var(--text-dim);}
   .week-nav .wk-arrow{color:var(--text-dim); font-size:18px; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; border-radius:50%; margin:-8px 0;}
   .week{display:flex; gap:7px; margin-bottom:18px;}
-  .day-chip{flex:1; min-height:72px; border-radius:14px; padding:10px 4px 8px; text-align:center; background:var(--surface); border:1px solid var(--line); cursor:pointer; transition:transform .15s;}
+  .day-chip{flex:1; min-height:72px; border-radius:14px; padding:10px 4px 8px; text-align:center; background:var(--surface); border:1px solid var(--line); cursor:pointer; transition:transform .15s ease, outline-color .2s ease;}
   .day-chip:active{transform:scale(.94);}
   .day-chip.today{border-color:var(--brand);}
   .day-chip.sel{outline:2px solid var(--brand);}
@@ -134,11 +137,7 @@
   .holiday-icon{width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:rgba(124,131,253,.14); font-size:15px;}
   .holiday-name{font-family:'Fraunces',serif; font-size:15px; font-weight:600; line-height:1.2;}
 
-  /* general motion */
-  .fade-in-up{animation:fadeInUp 0.35s ease both;}
-  @keyframes fadeInUp{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
-  .hero{transition:opacity 0.25s ease;}
-  .day-chip{transition:transform 0.15s ease, outline-color 0.2s ease;}
+  /* Interaction motion only. No entrance/stagger animations. */
   .save-btn, .del-btn, .fab{transition:transform 0.12s ease, filter 0.12s ease, box-shadow 0.2s ease;}
   .save-btn:active, .del-btn:active, .fab:active{transform:scale(0.96); filter:brightness(0.95);}
   .tab, .dp, .kind-opt, .sw-opt{transition:transform 0.12s ease, background 0.15s ease, color 0.15s ease;}
