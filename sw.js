@@ -1,4 +1,4 @@
-const CACHE_NAME = 'schedule-shell-v7';
+const CACHE_NAME = 'schedule-shell-v8';
 const APP_SHELL = [
   './',
   './index.html',

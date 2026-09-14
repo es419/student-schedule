@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="auth-screen" id="authScreen">
+<div class="auth-screen" id="authScreen" style="display:none">
   <div class="auth-card">
     <h2 id="authTitle">התחברות</h2>
     <p id="authSub">כדי שרק אתה תראה את הלו״ז שלך</p>
@@ -107,9 +107,8 @@
 
 <button type="button" class="fab" onclick="openSheet('category')" aria-label="הוספה">+</button>
 
-<div class="overlay" id="overlay" onclick="closeSheet()"></div>
-<div class="sheet editor-sheet" id="sheet">
-  <div class="sheet-drag-zone" id="sheetDragZone" aria-hidden="true"><span class="sheet-handle"></span></div>
+<div class="overlay open" id="overlay"></div>
+<div class="sheet editor-sheet open" id="sheet">
   <span class="close-x" onclick="closeSheet()">✕</span>
   <div class="tabs sheet-tabs">
     <div class="tab" data-tab="category" onclick="switchTab('category')">קטגוריה</div>
@@ -175,6 +174,6 @@
   </div>
 </div>
 
-<script src="app.js"></script>
+
 </body>
 </html>

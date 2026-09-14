@@ -588,10 +588,88 @@ function openSheet(tab){
 }
 function closeSheet(){
   document.activeElement?.blur?.();
-  document.getElementById('overlay').classList.remove('open');
-  document.getElementById('sheet').classList.remove('open');
+  const sheet = document.getElementById('sheet');
+  const overlay = document.getElementById('overlay');
+  sheet.classList.remove('dragging');
+  sheet.style.transform = '';
+  overlay.style.opacity = '';
+  overlay.classList.remove('open');
+  sheet.classList.remove('open');
   if(!document.getElementById('settingsSheet').classList.contains('open')) unlockAppScroll();
   resetCatForm(); resetRecForm(); resetOneoffForm();
+}
+
+function initEditorSheetDrag(){
+  const sheet = document.getElementById('sheet');
+  const handle = document.getElementById('sheetDragZone');
+  const overlay = document.getElementById('overlay');
+  if(!sheet || !handle) return;
+
+  let pointerId = null;
+  let startY = 0;
+  let lastY = 0;
+  let startTime = 0;
+
+  const resetDrag = () => {
+    pointerId = null;
+    sheet.classList.remove('dragging');
+    sheet.style.transform = '';
+    overlay.style.opacity = '';
+  };
+
+  handle.addEventListener('pointerdown', (event) => {
+    if(!sheet.classList.contains('open') || event.button > 0) return;
+    pointerId = event.pointerId;
+    startY = lastY = event.clientY;
+    startTime = performance.now();
+    sheet.classList.add('dragging');
+    handle.setPointerCapture?.(event.pointerId);
+  });
+
+  handle.addEventListener('pointermove', (event) => {
+    if(pointerId !== event.pointerId) return;
+    const dy = Math.max(0, event.clientY - startY);
+    lastY = event.clientY;
+    if(dy === 0) return;
+    sheet.style.transform = `translate3d(0, ${Math.min(dy, sheet.offsetHeight)}px, 0)`;
+    const fade = Math.max(0.28, 1 - dy / Math.max(240, sheet.offsetHeight * 0.8));
+    overlay.style.opacity = String(fade);
+  });
+
+  const finish = (event) => {
+    if(pointerId !== event.pointerId) return;
+    const dy = Math.max(0, lastY - startY);
+    const elapsed = Math.max(1, performance.now() - startTime);
+    const velocity = dy / elapsed;
+    pointerId = null;
+
+    // Deliberately not too sensitive: a clear pull, or a reasonably quick deliberate swipe.
+    const shouldDismiss = dy >= 110 || (dy >= 65 && velocity >= 0.72);
+    if(shouldDismiss){
+      sheet.classList.remove('dragging');
+      sheet.style.transition = 'transform .22s ease-out';
+      sheet.style.transform = 'translate3d(0, 105%, 0)';
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        sheet.style.transition = '';
+        sheet.style.transform = '';
+        overlay.style.opacity = '';
+        closeSheet();
+      }, 210);
+    } else {
+      sheet.classList.remove('dragging');
+      sheet.style.transition = 'transform .18s ease-out';
+      sheet.style.transform = 'translate3d(0, 0, 0)';
+      overlay.style.opacity = '';
+      setTimeout(() => {
+        sheet.style.transition = '';
+        sheet.style.transform = '';
+      }, 190);
+    }
+  };
+
+  handle.addEventListener('pointerup', finish);
+  handle.addEventListener('pointercancel', resetDrag);
 }
 function switchTab(tab){
   ['category','recurring','oneoff'].forEach(t=>document.getElementById('tab-'+t).style.display = t===tab?'block':'none');
@@ -818,6 +896,7 @@ function syncVisualViewport(){
   document.documentElement.style.setProperty('--visual-viewport-height', `${Math.round(h)}px`);
 }
 syncVisualViewport();
+initEditorSheetDrag();
 window.visualViewport?.addEventListener('resize', syncVisualViewport, {passive:true});
 window.visualViewport?.addEventListener('scroll', syncVisualViewport, {passive:true});
 window.addEventListener('orientationchange', ()=>setTimeout(syncVisualViewport, 120), {passive:true});

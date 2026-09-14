@@ -67,17 +67,19 @@
 
   .overlay{position:fixed; inset:0; background:rgba(10,10,15,.6); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); z-index:30; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .22s ease, visibility 0s linear .22s;}
   .overlay.open{opacity:1; visibility:visible; pointer-events:auto; transition-delay:0s;}
-  .sheet::before{content:''; display:block; width:38px; height:5px; border-radius:999px; background:var(--line); margin:-7px auto 12px; flex:0 0 auto;}
-  .sheet{position:fixed; right:0; left:0; bottom:0; width:100%; max-width:520px; margin:0 auto; background:var(--surface); border-radius:22px 22px 0 0; padding:20px max(18px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); z-index:31; transform:translate3d(0,100%,0); will-change:transform; transition:transform .32s cubic-bezier(.22,.8,.24,1); max-height:calc(var(--visual-viewport-height, 100dvh) - max(10px, env(safe-area-inset-top))); overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scrollbar-width:none;}
+  .sheet{position:fixed; right:0; left:0; bottom:0; width:100%; max-width:520px; margin:0 auto; background:var(--surface); border-radius:22px 22px 0 0; z-index:31; transform:translate3d(0,100%,0); will-change:transform; transition:transform .32s cubic-bezier(.22,.8,.24,1); overflow:hidden;}
+  .sheet.dragging{transition:none;}
+  .sheet-drag-zone{height:34px; display:flex; align-items:center; justify-content:center; flex:0 0 auto; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none;}
+  .sheet-handle{display:block; width:38px; height:5px; border-radius:999px; background:var(--line);}
   .sheet::-webkit-scrollbar,.sheet-body::-webkit-scrollbar{display:none;}
   .sheet.open{transform:translate3d(0,0,0);}
   .sheet h3{font-size:17px; margin-bottom:14px;}
   .tabs{display:flex; gap:6px; margin-bottom:16px; background:var(--surface-2); padding:4px; border-radius:12px;}
 
   /* The editor is a real bottom sheet: chrome stays fixed, only form content scrolls. */
-  .editor-sheet{display:flex; flex-direction:column; height:fit-content; min-height:0; padding:18px 0 0; overflow:hidden; max-height:min(92dvh, calc(var(--visual-viewport-height, 100dvh) - max(8px, env(safe-area-inset-top))));}
-  .editor-sheet .sheet-tabs{flex:0 0 auto; margin:0 max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));}
-  .editor-sheet .sheet-body{flex:0 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:0 max(16px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));}
+  .editor-sheet{display:block; height:auto; min-height:0; padding:0; overflow:hidden; max-height:calc(var(--visual-viewport-height, 100dvh) - max(8px, env(safe-area-inset-top)));}
+  .editor-sheet .sheet-tabs{margin:0 max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));}
+  .editor-sheet .sheet-body{max-height:calc(var(--visual-viewport-height, 100dvh) - 116px - max(8px, env(safe-area-inset-top))); overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:0 max(16px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));}
   .editor-sheet .sheet-body > div{width:100%; min-width:0;}
   .tab{flex:1; text-align:center; padding:8px; font-size:13px; border-radius:9px; cursor:pointer; color:var(--text-dim); font-weight:600;}
   .tab.active{background:var(--brand); color:#14141c;}
@@ -157,10 +159,10 @@
   .lesson-row:active, .event-row:active{transform:scale(0.98); background:var(--surface-2);}
 
   @media (max-width:430px){
-    .sheet{border-radius:20px 20px 0 0; padding-top:18px; padding-right:max(14px, env(safe-area-inset-right)); padding-left:max(14px, env(safe-area-inset-left)); padding-bottom:max(12px, env(safe-area-inset-bottom));}
-    .editor-sheet{padding:16px 0 0; max-height:min(94dvh, calc(var(--visual-viewport-height, 100dvh) - max(6px, env(safe-area-inset-top))));}
+    .sheet{border-radius:20px 20px 0 0;}
+    .editor-sheet{max-height:calc(var(--visual-viewport-height, 100dvh) - max(6px, env(safe-area-inset-top)));}
     .editor-sheet .sheet-tabs{margin-inline:max(14px, env(safe-area-inset-left)); margin-bottom:10px;}
-    .editor-sheet .sheet-body{padding-right:max(14px, env(safe-area-inset-right)); padding-left:max(14px, env(safe-area-inset-left)); padding-bottom:max(12px, env(safe-area-inset-bottom));}
+    .editor-sheet .sheet-body{max-height:calc(var(--visual-viewport-height, 100dvh) - 110px - max(6px, env(safe-area-inset-top))); padding-right:max(14px, env(safe-area-inset-right)); padding-left:max(14px, env(safe-area-inset-left)); padding-bottom:max(8px, env(safe-area-inset-bottom));}
     .row2{gap:8px;}
     .row2 input[type=time]{font-size:16px;}
   }
