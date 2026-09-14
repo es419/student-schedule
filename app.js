@@ -351,7 +351,7 @@ function weekDates(){
 function itemsForDate(dateObj){
   const wd = dateObj.getDay();
   const ds = isoDate(dateObj);
-  const recItems = store.recurring.filter(r=>normalizeRecurringDays(r.days).includes(wd)).map(r=>({
+  const recItems = store.recurring.filter(r=>r.days.includes(wd)).map(r=>({
     id:r.id, type:'recurring', start:r.start, end:r.end, title:r.title||(catById(r.categoryId)?.name)||'אירוע קבוע', loc:r.loc, notes:r.notes||'', color:(catById(r.categoryId)?.color)||'#888'
   }));
   // One-off items belong to exactly one calendar date. Never spread them across adjacent days.
@@ -544,19 +544,34 @@ function renderHolidayBanner(){
 }
 
 function renderEvents(){
-  // The week view follows the selected day: show one-off events only on their own date.
-  const list = store.oneoff.filter(o=>o.date===selectedDate).sort((a,b)=>(a.start||'99:99').localeCompare(b.start||'99:99'));
   const el = document.getElementById('eventList');
-  if(list.length===0){ el.innerHTML = '<div class="empty">אין כלום קרוב עדיין</div>'; return; }
-  el.innerHTML = list.map((o)=>{
-    const diff = 0;
-    const c = catById(o.categoryId);
-    const dateStr = new Date(o.date).toLocaleDateString('he-IL',{day:'numeric',month:'short'});
-    const pillColor = diff<=1 ? 'var(--heavy)' : 'var(--brand)';
-    return `<div class="event-row" onclick="openOneoffEdit('${o.id}')">
-      <div class="swatch" style="background:${diff<=1?'var(--heavy)':'var(--line)'}"></div>
-      <div class="lr-body"><div class="lr-title">${o.title}</div><div class="lr-sub">${c?c.name+' · ':''}${dateStr}${o.start?' · '+o.start:''}</div></div>
-      <span class="pill" style="background:${pillColor}22; color:${pillColor}">${kindLabel(o.kind)}</span>
+  const dateObj = new Date(selectedDate + 'T12:00:00');
+  const list = itemsForDate(dateObj);
+
+  if(list.length===0){
+    el.innerHTML = '<div class="empty">אין אירועים ביום הזה</div>';
+    return;
+  }
+
+  el.innerHTML = list.map(item=>{
+    const isRecurring = item.type === 'recurring';
+    const clickHandler = isRecurring
+      ? `openRecurringEdit('${item.id}')`
+      : `openOneoffEdit('${item.id}')`;
+    const typeLabel = isRecurring ? 'קבוע' : 'חד־פעמי';
+    const typeColor = isRecurring ? 'var(--calm)' : 'var(--heavy)';
+    const time = item.start
+      ? `<bdi dir="ltr">${item.start}${item.end ? ' - ' + item.end : ''}</bdi>`
+      : 'ללא שעה';
+    const meta = [time, item.loc].filter(Boolean).join(' · ');
+
+    return `<div class="event-row" onclick="${clickHandler}">
+      <div class="swatch" style="background:${item.color||'var(--brand)'}"></div>
+      <div class="lr-body">
+        <div class="lr-title">${item.title}</div>
+        <div class="lr-sub">${meta}</div>
+      </div>
+      <span class="pill" style="background:${typeColor}22; color:${typeColor}">${typeLabel}</span>
     </div>`;
   }).join('');
 }
@@ -837,7 +852,7 @@ async function saveRecurring(){
   if(!categoryId){ alert('צריך לבחור קטגוריה'); return; }
   if(!title){ alert('צריך להזין שם לאירוע'); return; }
   if(selectedRecDays.size===0){ alert('צריך לבחור לפחות יום אחד'); return; }
-  const row = {category_id:categoryId, title, days:normalizeRecurringDays([...selectedRecDays]), start_time:start, end_time:end, location:loc};
+  const row = {category_id:categoryId, title, days:[...selectedRecDays].sort((a,b)=>a-b), start_time:start, end_time:end, location:loc};
   let error, savedId=editingRecId;
   let saved;
   if(editingRecId){
