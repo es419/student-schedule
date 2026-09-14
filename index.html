@@ -108,14 +108,15 @@
 <button type="button" class="fab" onclick="openSheet('category')" aria-label="הוספה">+</button>
 
 <div class="overlay" id="overlay" onclick="closeSheet()"></div>
-<div class="sheet" id="sheet">
+<div class="sheet editor-sheet" id="sheet">
   <span class="close-x" onclick="closeSheet()">✕</span>
-  <div class="tabs">
+  <div class="tabs sheet-tabs">
     <div class="tab" data-tab="category" onclick="switchTab('category')">קטגוריה</div>
     <div class="tab" data-tab="recurring" onclick="switchTab('recurring')">קבוע שבועי</div>
     <div class="tab" data-tab="oneoff" onclick="switchTab('oneoff')">חד־פעמי</div>
   </div>
 
+  <div class="sheet-body">
   <div id="tab-category">
     <div id="cat-list"></div>
     <label>שם הקטגוריה</label>
@@ -169,6 +170,7 @@
     <div class="add" style="margin-top:6px; cursor:pointer;" onclick="addReminderRow('oo')">+ הוספת תזכורת</div>
     <button class="save-btn" id="oo-save-btn" onclick="saveOneoff()">שמירה</button>
     <button class="del-btn" id="oo-del-btn" style="display:none;" onclick="deleteOneoff()">מחיקה</button>
+  </div>
   </div>
 </div>
 

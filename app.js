@@ -596,6 +596,10 @@ function closeSheet(){
 function switchTab(tab){
   ['category','recurring','oneoff'].forEach(t=>document.getElementById('tab-'+t).style.display = t===tab?'block':'none');
   document.querySelectorAll('.tab[data-tab]').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
+  const editorSheet = document.getElementById('sheet');
+  editorSheet.dataset.activeTab = tab;
+  const sheetBody = editorSheet.querySelector('.sheet-body');
+  if(sheetBody) sheetBody.scrollTop = 0;
   if(tab==='category'){ renderCatList(); if(!editingCatId){ selectedColor=COLORS[0]; renderSwatchPicker(); } }
   if(tab==='recurring'){
     if(!editingRecId) selectedRecDays=new Set();
