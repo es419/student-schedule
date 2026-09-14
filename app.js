@@ -275,7 +275,27 @@ function preloadVisibleHolidayYears(){
 
 // -- mapping helpers: DB uses snake_case, app logic uses the shorter names below --
 function mapCatFromDb(r){ return {id:r.id, name:r.name, color:r.color}; }
-function mapRecFromDb(r){ return {id:r.id, categoryId:r.category_id, title:r.title, days:r.days, start:r.start_time, end:r.end_time, loc:r.location, notes:r.notes||r.note||''}; }
+function normalizeRecurringDays(value){
+  let days = value;
+  if(typeof days === 'string'){
+    try{ days = JSON.parse(days); }
+    catch{ days = days.split(','); }
+  }
+  if(!Array.isArray(days)) return [];
+  return [...new Set(days.map(Number).filter(n=>Number.isInteger(n) && n>=0 && n<=6))];
+}
+function mapRecFromDb(r){
+  return {
+    id:r.id,
+    categoryId:r.category_id,
+    title:r.title,
+    days:normalizeRecurringDays(r.days),
+    start:r.start_time,
+    end:r.end_time,
+    loc:r.location,
+    notes:r.notes||r.note||''
+  };
+}
 function mapOoFromDb(r){ return {id:r.id, categoryId:r.category_id, title:r.title, date:r.date, start:r.start_time||'', end:r.end_time||'', kind:r.kind, notes:r.notes||r.note||''}; }
 
 
@@ -331,7 +351,7 @@ function weekDates(){
 function itemsForDate(dateObj){
   const wd = dateObj.getDay();
   const ds = isoDate(dateObj);
-  const recItems = store.recurring.filter(r=>r.days.includes(wd)).map(r=>({
+  const recItems = store.recurring.filter(r=>normalizeRecurringDays(r.days).includes(wd)).map(r=>({
     id:r.id, type:'recurring', start:r.start, end:r.end, title:r.title||(catById(r.categoryId)?.name)||'אירוע קבוע', loc:r.loc, notes:r.notes||'', color:(catById(r.categoryId)?.color)||'#888'
   }));
   // One-off items belong to exactly one calendar date. Never spread them across adjacent days.
@@ -817,7 +837,7 @@ async function saveRecurring(){
   if(!categoryId){ alert('צריך לבחור קטגוריה'); return; }
   if(!title){ alert('צריך להזין שם לאירוע'); return; }
   if(selectedRecDays.size===0){ alert('צריך לבחור לפחות יום אחד'); return; }
-  const row = {category_id:categoryId, title, days:[...selectedRecDays], start_time:start, end_time:end, location:loc};
+  const row = {category_id:categoryId, title, days:normalizeRecurringDays([...selectedRecDays]), start_time:start, end_time:end, location:loc};
   let error, savedId=editingRecId;
   let saved;
   if(editingRecId){
